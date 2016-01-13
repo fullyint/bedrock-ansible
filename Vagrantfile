@@ -2,6 +2,7 @@
 # vi: set ft=ruby :
 
 require 'yaml'
+require 'mkmf'
 
 ANSIBLE_PATH = __dir__ # absolute path to Ansible directory
 
@@ -21,11 +22,7 @@ else
   fail_with_message "#{config_file} was not found. Please set `ANSIBLE_PATH` in your Vagrantfile."
 end
 
-if !Dir.exists?(ENV['ANSIBLE_ROLES_PATH']) && !Vagrant::Util::Platform.windows?
-  fail_with_message "You are missing the required Ansible Galaxy roles, please install them with this command:\nansible-galaxy install -r requirements.yml"
-end
-
-Vagrant.require_version '>= 1.5.1'
+Vagrant.require_version '>= 1.8.0'
 
 Vagrant.configure('2') do |config|
   config.vm.box = 'ubuntu/trusty64'
@@ -50,8 +47,10 @@ Vagrant.configure('2') do |config|
     fail_with_message "vagrant-hostmanager missing, please install the plugin with this command:\nvagrant plugin install vagrant-hostmanager"
   end
 
+  # Sync folders
   if Vagrant::Util::Platform.windows?
     wordpress_sites.each_pair do |name, site|
+      config.vm.synced_folder '.', '/vagrant', mount_options: ['dmode=776', 'fmode=664']
       config.vm.synced_folder local_site_path(site), remote_site_path(name), owner: 'vagrant', group: 'www-data', mount_options: ['dmode=776', 'fmode=775']
     end
   else
@@ -65,22 +64,23 @@ Vagrant.configure('2') do |config|
     end
   end
 
-  if Vagrant::Util::Platform.windows?
-    config.vm.provision :shell do |sh|
-      sh.path = File.join(ANSIBLE_PATH, 'windows.sh')
-    end
-  else
-    config.vm.provision :ansible do |ansible|
-      ansible.playbook = File.join(ANSIBLE_PATH, 'dev.yml')
-      ansible.groups = {
-        'web' => ['default'],
-        'development' => ['default']
-      }
+  # Provisioning
+  provisioner = !find_executable0('ansible-playbook') || ENV['PROVISIONER'] == 'ansible_local' ? :ansible_local : :ansible
+  provisioning_path = provisioner == :ansible_local ? ANSIBLE_PATH.sub(__dir__, '/vagrant') : ANSIBLE_PATH
+  config.vm.provision provisioner do |ansible|
+    ansible.provisioning_path = provisioning_path if provisioner == :ansible_local
+    ansible.playbook = File.join(provisioning_path, 'dev.yml')
+    ansible.galaxy_role_file = File.join(provisioning_path, 'requirements.yml')
+    ansible.galaxy_roles_path = File.join(provisioning_path, 'vendor/roles')
 
-      if vars = ENV['ANSIBLE_VARS']
-        extra_vars = Hash[vars.split(',').map { |pair| pair.split('=') }]
-        ansible.extra_vars = extra_vars
-      end
+    ansible.groups = {
+      'web' => ['default'],
+      'development' => ['default']
+    }
+
+    if vars = ENV['ANSIBLE_VARS']
+      extra_vars = Hash[vars.split(',').map { |pair| pair.split('=') }]
+      ansible.extra_vars = extra_vars
     end
   end
 
