@@ -1,8 +1,4 @@
 ---
-- include: variable-check.yml
-  vars:
-    playbook: server.yml
-
 - name: Determine Remote User
   hosts: web:&{{ env }}
   gather_facts: false
@@ -13,6 +9,7 @@
   hosts: web:&{{ env }}
   become: yes
   roles:
+    - { role: trellis, tags: [trellis, always] }
     - { role: common, tags: [common] }
     - { role: swapfile, swapfile_size: 1GB, tags: [swapfile] }
     - { role: fail2ban, tags: [fail2ban] }

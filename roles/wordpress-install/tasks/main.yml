@@ -13,8 +13,8 @@
 - name: Copy .env file into web root
   command: rsync -ac --info=NAME /tmp/{{ item.key }}.env {{ www_root }}/{{ item.key }}/current/.env
   with_dict: "{{ wordpress_sites }}"
-  register: env
-  changed_when: env.stdout == "{{ item.key }}.env"
+  register: env_result
+  changed_when: env_result.stdout == "{{ item.key }}.env"
 
 - name: Install Dependencies with Composer
   command: composer install

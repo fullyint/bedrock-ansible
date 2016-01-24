@@ -1,0 +1,20 @@
+Assign custom values to the following variables and enable Ansible vault before you commit the changes. See C_BOLDhttps://roots.io/trellis/docs/vault/C_BOLD
+
+{% if has_default_mail_password %}
+  - `vault_mail_password` in `group_vars/all/vault.yml`
+{% endif %}
+{% if has_default_mysql_root_password %}
+  - `vault_mysql_root_password` in `group_vars/{{ _env }}/vault.yml`
+{% endif %}
+{% if has_default_sudoer_passwords %}
+  - `vault_sudoer_passwords` in `group_vars/{{ _env }}/vault.yml`
+{% endif %}
+{% if has_default_db_password != [] %}
+  - `db_password` for `{{ has_default_db_password | join('`, `') }}` in `group_vars/{{ _env }}/vault.yml`
+{% endif %}
+{% if has_default_salts != [] %}
+  - keys and salts for `{{ has_default_salts | unique | join('`, `') }}` in `group_vars/{{ _env }}/vault.yml`
+{% endif %}
+{% if has_default_wp_admin_password != [] %}
+  - `admin_password` for `{{ has_default_wp_admin_password | join('`, `') }}` in `group_vars/development/vault.yml`
+{% endif %}

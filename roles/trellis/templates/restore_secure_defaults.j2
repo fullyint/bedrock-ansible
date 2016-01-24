@@ -1,0 +1,12 @@
+For better security, restore these defaults:
+
+{% if accept_git_hostkey | default(false) %}
+  - `accept_git_hostkey: C_OKfalseC_OK` in `group_vars/all/security.yml`.
+    See C_BOLDhttps://roots.io/trellis/docs/cli-output/C_BOLD
+{% endif %}
+{% if _env != 'development' and sshd_password_authentication | default(false) %}
+  - `sshd_password_authentication: C_OKfalseC_OK` in `group_vars/all/security.yml`
+{% endif %}
+{% if _env != 'development' and not ferm_enabled | default(true) %}
+  - `ferm_enabled: C_OKtrueC_OK` in `group_vars/all/security.yml`
+{% endif %}

@@ -1,0 +1,8 @@
+Values for `wp_home` and `wp_siteurl` must build on a value in `site_hosts`.
+
+For example, `wp_home: http://example.com` and `wp_siteurl: http://example.com/wp` require `site_hosts` to contain `example.com`.
+
+Adjust the following sites in `group_vars/{{ _env }}/worpdress_sites.yml` to meet this requirement:
+```
+  {{ no_site_hosts_in_wp_env | to_nice_yaml | trim }}
+```

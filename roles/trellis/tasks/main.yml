@@ -1,0 +1,16 @@
+---
+- name: Perform validations
+  connection: local
+  fail:
+    msg: "{{ item.msg | default('Failed') }}"
+  with_items: "[{% for item in validations | default([]) if 'all' in item.playbooks or playbook in item.playbooks %}{{ item }},{% endfor %}]"
+  when: item.when | default(true) and true in item.conditions | default([])
+  tags: [validations, always]
+
+- name: Prepare tips
+  connection: local
+  debug:
+    msg: "{{ item.msg | default('') }}"
+  with_items: "[{% for item in tips | default([]) if 'all' in item.playbooks or playbook in item.playbooks %}{{ item }},{% endfor %}]"
+  when: item.when | default(true) and true in item.conditions | default([])
+  tags: [tips, always]

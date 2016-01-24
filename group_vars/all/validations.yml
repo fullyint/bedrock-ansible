@@ -1,0 +1,24 @@
+# Documentation: https://roots.io/trellis/docs/validations-and-tips/
+
+validations:
+  - "{{ validate_ansible_version }}"
+  - "{{ validate_sites_in_vault }}"
+  - "{{ validate_unique_db_names }}"
+  - "{{ validate_sudo_user }}"
+  - "{{ validate_admin_user_is_not_root }}"
+  - "{{ validate_web_user_is_not_root }}"
+  - "{{ validate_site_variable }}"
+  - "{{ validate_repo_definition }}"
+  - "{{ validate_repo_customized }}"
+  - "{{ validate_site_hosts_no_protocol }}"
+  - "{{ validate_wp_env_protocol }}"
+  - "{{ validate_wp_env_based_on_site_hosts }}"
+  - "{{ validate_one_env_group_only }}"
+
+tips:
+  - "{{ tip_change_sensitive_defaults }}"
+  - "{{ tip_vault_files }}"
+  - "{{ tip_root_login }}"
+  - "{{ tip_enable_ssl }}"
+  - "{{ tip_restore_secure_defaults }}"
+  - "{{ tip_enable_caching }}"

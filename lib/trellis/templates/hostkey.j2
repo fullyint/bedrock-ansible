@@ -1,0 +1,7 @@
+{{ hr }}
+
+This usually means you have rebuilt the {{ 'VM' if playbook == 'dev.yml' else 'server' }} and have not adjusted your `known_hosts` by updating or removing the old hostkey for `{{ host }}`.
+{% if playbook == 'dev.yml' %}
+
+If this is an unexposed development host, you could prevent hostkey checking failures by adding `StrictHostKeyChecking no` for `{{ host }}` in your `ssh-config`. Be cautious, however.  Disabling `StrictHostKeyChecking` for public-facing hosts creates a security vulnerability."
+{% endif %}

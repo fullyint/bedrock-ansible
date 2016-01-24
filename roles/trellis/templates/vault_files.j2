@@ -1,0 +1,4 @@
+Some vault files are not encrypted. Set up Ansible Vault following the guide at C_BOLDhttps://roots.io/trellis/docs/vault/C_BOLD then run this command to encrypt {{ unencrypted_vault_files | count }} file(s):
+```
+ansible-vault encrypt {{ unencrypted_vault_files | join(' ') }}
+```

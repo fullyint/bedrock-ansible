@@ -3,8 +3,8 @@
   hosts: web:&development
   become: yes
   remote_user: vagrant
-
   roles:
+    - { role: trellis, tags: [trellis, always] }
     - { role: common, tags: [common] }
     - { role: fail2ban, tags: [fail2ban] }
     - { role: ferm, tags: [ferm] }

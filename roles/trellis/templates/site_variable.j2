@@ -1,0 +1,5 @@
+Site `C_ERROR{{ (_site != '') | ternary(_site, '(no site defined)') }}C_ERROR` is not valid. Available sites to deploy:
+```
+{{ wordpress_sites.keys() | to_nice_yaml | trim }}
+```
+(from `group_vars/{{ _env }}/wordpress_sites.yml`)

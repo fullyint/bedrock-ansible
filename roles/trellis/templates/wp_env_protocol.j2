@@ -1,0 +1,4 @@
+Values for `wp_home` and `wp_siteurl` must begin with the `http://` or `https://` protocol. Edit the following values in `group_vars/{{ _env }}/wordpress_sites.yml`:
+```
+{{ wp_env_no_protocol | to_nice_yaml | trim }}
+```
