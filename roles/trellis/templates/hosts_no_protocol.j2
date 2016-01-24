@@ -1,0 +1,4 @@
+Values for `site_hosts` in `group_vars/{{ _env }}/wordpress_sites.yml` must not include the protocol (e.g., `C_ERRORhttp://C_ERROR`). Remove the protocol from the following `site_hosts`:
+```
+{{ site_hosts_with_protocol | to_nice_yaml | trim }}
+```

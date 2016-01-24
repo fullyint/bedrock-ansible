@@ -1,0 +1,5 @@
+Improve site performance by setting FastCGI caching `enabled: C_OKtrueC_OK` for the following sites in `group_vars/{{ _env }}/wordpress_sites.yml`:
+```
+{{ non_cached_sites | to_nice_yaml | trim }}
+```
+More info: C_BOLDhttps://roots.io/trellis/docs/fastcgi-caching/C_BOLD

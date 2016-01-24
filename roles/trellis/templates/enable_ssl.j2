@@ -1,0 +1,6 @@
+Improve site security and performance by setting SSL `enabled: C_OKtrueC_OK` for the following sites in `group_vars/{{ _env }}/wordpress_sites.yml`:
+```
+{{ non_ssl_sites | to_nice_yaml | trim }}
+```
+More info: C_BOLDhttps://roots.io/trellis/docs/ssl/C_BOLD
+{% if _env == 'development' %}C_BOLDhttps://roots.io/trellis/docs/local-development-setup/C_BOLD{% endif %}

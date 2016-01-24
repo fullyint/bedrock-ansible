@@ -1,0 +1,24 @@
+{{ hr }}
+{{ lookup('template', cwd + '/lib/trellis/templates/osx_keychain_msg.j2') }}
+{% if passphrase_given %}
+
+The error message above mentions dealing with a passphrase for your SSH key. Be sure your ssh agent is correctly handling passphrases for your SSH keys and that your passphrase is correct.
+{% endif %}
+{% if key_exists %}
+
+It appears that an SSH key was found (maybe just in your ssh-agent cache). It was tried but it failed.
+{% endif %}
+
+The playbook `{{ playbook }}` is trying to connect to the remote as the user named `{{ user_name }}` (typically the value of the `{{ user_var }}` variable). Be sure you have this user set up on the remote. The remote should have a public SSH key assigned to the user `{{ user_name }}`. Your local control machine should have the corresponding private key. If you have created the public/private keypair on your local machine, Trellis typically performs the rest of the user setup for you. See C_BOLDhttps://roots.io/trellis/docs/ssh-keys/C_BOLD
+
+If you have recently changed `{{ user_var }}` to `{{ user_name }}`, you could encounter this failed connection if you have not yet set up the user `{{ user_name }}` by including this user in the `users` dictionary in `group_vars/all/users.yml` and running `server.yml`. If that is the case, you may need to take the following steps.
+
+{% if user_var == 'admin_user' %}
+  - Add this new user to the `users` dictionary as a manual entry (not relying on the `{% raw %}{{ admin_user }}{% endraw %}` variable)
+  - Change the `admin_user` back to a user that exists on the remote so that `server.yml` will be able to connect
+{% else %}
+  - Ensure `{{ user_name }}` is in `users` dictionary, perhaps as `{% raw %}{{ web_user }}{% endraw %}`
+{% endif %}
+  - Run `server.yml`
+
+You may find helpful info about the failed connection if you manually connect to your remote and inspect `/var/log/auth.log`.

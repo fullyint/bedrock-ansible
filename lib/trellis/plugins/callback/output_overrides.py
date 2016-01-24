@@ -33,6 +33,7 @@ class CallbackModule(TrellisCallbackBase, CallbackModule_default):
 
     def suppress_output(self, result):
         return (self.custom_output and self._display.verbosity < 3 and (
+               self.role == 'trellis' or
                (self.action in ['debug', 'fail'] and 'msg' in result._result) or
                ('failed' in result._result and self.action in ['assert', 'setup'])))
 

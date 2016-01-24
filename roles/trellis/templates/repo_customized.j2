@@ -1,0 +1,9 @@
+Edit the `repo` definition for `{{ _site }}` in `group_vars/{{ _env }}/wordpress_sites.yml`.
+```
+wordpress_sites:
+  {{ _site }}:
+    repo: C_ERROR{% if project is defined %}{{ project.repo }}{% endif %}C_ERROR
+```
+This indicates the project to deploy. The project should be customized.
+More info: C_BOLDhttps://roots.io/trellis/docs/deploys/C_BOLD
+

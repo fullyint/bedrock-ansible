@@ -1,0 +1,160 @@
+# A validation will fail (or tip will display) if any condition listed is true
+
+minimum_ansible_version: 2.0.0.2
+
+#---------------------------------------------
+#  Validations
+#---------------------------------------------
+
+validate_ansible_version:
+  name: Unsupported Ansible version
+  playbooks: all
+  conditions:
+    - "{{ ansible_version is not defined }}"
+    - "{{ ansible_version.full | version_compare(minimum_ansible_version, '<') }}"
+  msg: "{{ lookup('template', role_path + '/templates/ansible_version.j2') }}"
+
+validate_sites_in_vault:
+  name: Site(s) missing from `vault.yml`
+  playbooks: all
+  conditions:
+    - "{{ unvaulted_sites | count != 0 }}"
+  msg: "{{ lookup('template', role_path + '/templates/sites_in_vault.j2') }}"
+
+validate_unique_db_names:
+  name: Non-unique `db_name` across sites
+  playbooks: dev.yml server.yml
+  conditions:
+    - "{{ db_name_dups != {} }}"
+  msg: "{{ lookup('template', role_path + '/templates/unique_db_names.j2') }}"
+
+validate_sudo_user:
+  name: No sudo user
+  playbooks: server.yml
+  conditions:
+    - "{{ admin_user not in (users | map(attribute='name') | list) }}"
+    - "{% for user in users if user.name == admin_user %}{{ 'sudo' not in user.groups }}{% endfor %}"
+    - "{{ _env != 'development' and admin_user not in sudoer_passwords.keys() }}"
+  msg: "{{ lookup('template', role_path + '/templates/sudo_user.j2') }}"
+  when: "{{ admin_user != 'root' and not sshd_permit_root_login | default(false) }}"
+
+validate_admin_user_is_not_root:
+  name: "`admin_user` must not be `root`"
+  playbooks: server.yml
+  conditions:
+    - "{{ admin_user == 'root' }}"
+  msg: "{{ lookup('template', role_path + '/templates/admin_user_is_not_root.j2') }}"
+  when: "{{ not sshd_permit_root_login | default(false) }}"
+
+validate_web_user_is_not_root:
+  name: "`web_user` must not be `root`"
+  playbooks: server.yml deploy.yml
+  conditions:
+    - "{{ web_user == 'root' }}"
+  msg: "{{ lookup('template', role_path + '/templates/web_user_is_not_root.j2') }}"
+
+validate_site_variable:
+  name: Invalid `site` variable
+  playbooks: deploy.yml rollback.yml
+  conditions:
+    - "{{ _site not in wordpress_sites }}"
+  msg: "{{ lookup('template', role_path + '/templates/site_variable.j2') }}"
+
+validate_repo_definition:
+  name: Invalid `repo` definition
+  playbooks: deploy.yml
+  conditions:
+    - '{% if _site in wordpress_sites %}{{ not wordpress_sites[_site].repo | default("") | match(".*@.*:.*\.git") }}{% endif %}'
+  msg: "{{ lookup('template', role_path + '/templates/repo_definition.j2') }}"
+  when: "{{ _site in wordpress_sites }}"
+
+validate_repo_customized:
+  name: "`repo` definition must be customized"
+  playbooks: deploy.yml
+  conditions:
+    - "{% if _site in wordpress_sites %}{{ wordpress_sites[_site].repo | default('') == 'git@github.com:example/example.com.git' }}{% endif %}"
+  msg: "{{ lookup('template', role_path + '/templates/repo_customized.j2') }}"
+  when: "{{ _site in wordpress_sites }}"
+
+validate_site_hosts_no_protocol:
+  name: Protocol should not be present in `site_hosts`
+  playbooks: dev.yml server.yml
+  conditions:
+    - "{{ site_hosts_with_protocol != {} }}"
+  msg: "{{ lookup('template', role_path + '/templates/hosts_no_protocol.j2') }}"
+
+validate_wp_env_protocol:
+  name: Missing protocol for `wp_home` or `wp_siteurl`
+  playbooks: dev.yml deploy.yml
+  conditions:
+    - "{{ wp_env_no_protocol != {} }}"
+  msg: "{{ lookup('template', role_path + '/templates/wp_env_protocol.j2') }}"
+
+validate_wp_env_based_on_site_hosts:
+  name: "`wp_home` and/or `wp_siteurl` lack(s) a corresponding `site_hosts` entry"
+  playbooks: server.yml dev.yml deploy.yml
+  conditions:
+    - "{{ no_site_hosts_in_wp_env != {} }}"
+  msg: "{{ lookup('template', role_path + '/templates/wp_env_based_on_site_hosts.j2') }}"
+  when: "{{ site_hosts_with_protocol == {} and wp_env_no_protocol == {} }}"
+
+validate_one_env_group_only:
+  name: Host name is in multiple environment groups
+  playbooks: all
+  conditions:
+    - "{{ ['development', 'staging', 'production'] | difference(_env) | difference(group_names) | count != 2 }}"
+  msg: "{{ lookup('template', role_path + '/templates/one_env_group_only.j2') }}"
+
+#---------------------------------------------
+#  Tips
+#---------------------------------------------
+
+tip_change_sensitive_defaults:
+  name: Assign custom values to sensitive variables
+  playbooks: dev.yml server.yml deploy.yml
+  conditions:
+    - "{{ has_default_mail_password }}"
+    - "{{ has_default_mysql_root_password }}"
+    - "{{ has_default_sudoer_passwords }}"
+    - "{{ has_default_db_password != [] }}"
+    - "{{ has_default_salts != [] }}"
+    - "{{ has_default_wp_admin_password != [] }}"
+  msg: "{{ lookup('template', role_path + '/templates/change_sensitive_defaults.j2') }}"
+
+# Maybe this should also check for the presence of `vault_password_file` param in `ansible.cfg`
+tip_vault_files:
+  name: Encrypt vault files
+  playbooks: all
+  conditions:
+    - "{{ unencrypted_vault_files | count != 0 }}"
+  msg: "{{ lookup('template', role_path + '/templates/vault_files.j2') }}"
+
+tip_root_login:
+  name: Disable SSH root login
+  playbooks: server.yml deploy.yml
+  conditions:
+    - "{{ sshd_permit_root_login }}"
+  msg: "{{ lookup('template', role_path + '/templates/root_login.j2') }}"
+
+tip_enable_ssl:
+  name: Enable SSL
+  playbooks: dev.yml server.yml deploy.yml
+  conditions:
+    - "{{ non_ssl_sites != {} }}"
+  msg: "{{ lookup('template', role_path + '/templates/root_login.j2') }}"
+
+tip_restore_secure_defaults:
+  name: Restore secure defaults
+  playbooks: dev.yml server.yml deploy.yml
+  conditions:
+    - "{{ accept_git_hostkey | default(false) }}"
+    - "{{ _env != 'development' and sshd_password_authentication | default(false) }}"
+    - "{{ _env != 'development' and not ferm_enabled | default(true) }}"
+  msg: "{{ lookup('template', role_path + '/templates/restore_secure_defaults.j2') }}"
+
+tip_enable_caching:
+  name: Enable FastCGI caching
+  playbooks: server.yml deploy.yml
+  conditions:
+    - "{{ non_cached_sites != {} }}"
+  msg: "{{ lookup('template', role_path + '/templates/enable_caching.j2') }}"

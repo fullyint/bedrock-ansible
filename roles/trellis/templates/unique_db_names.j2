@@ -1,0 +1,4 @@
+Each `db_name` in `wordpress_sites` must be unique. Edit `group_vars/{{ _env }}/wordpress_sites.yml` to resolve these duplicates:
+```
+{{ db_name_dups | to_nice_yaml | trim }}
+```

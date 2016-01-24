@@ -1,0 +1,13 @@
+The hosts parameter for the play is `{{ hosts_param }}` which means the play will use hosts that are in the `web` and `{{ env }}` groups simultaneously. No such hosts were found.
+
+Here are the hosts for the relevant groups, as specified in `{{ inventory }}`:
+
+Hosts in `web` group:
+```
+{{ hosts_web_group | to_nice_yaml | trim }}
+```
+Hosts in the `{{ env }}` group:
+```
+{{ hosts_env_group | to_nice_yaml | trim }}
+```
+  The hosts you are targeting should each appear in one environment group (e.g., `[{{ env }}]`) and one "type" group (e.g., `[web]`). See the example at C_BOLDhttps://github.com/roots/trellis/blob/master/hosts/{{ env }}C_BOLD

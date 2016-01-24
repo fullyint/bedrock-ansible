@@ -1,0 +1,32 @@
+{% if permission_denied %}
+The `repo: {{ repo }}` could not be accessed (the repo for site `{{ site }}` in `group_vars/{{ env }}/wordpress_sites.yml`). Please verify the following:
+
+1 - You should have set up an SSH keypair, placing the public key on the git host and keeping the private key on your local machine.
+
+2 - You should have set up SSH forwarding.
+{{ lookup('template', cwd + '/lib/trellis/templates/osx_keychain_msg.j2') }}
+
+More info:
+
+C_BOLDhttps://roots.io/trellis/docs/deploys/#ssh-keysC_BOLD
+
+C_BOLDhttps://roots.io/trellis/docs/ssh-keys/#cloning-remote-repo-using-ssh-agent-forwardingC_BOLD
+{% elif repo_not_found %}
+The `repo: {{ repo }}` could not be found (the repo for site `{{ site }}` in `group_vars/{{ env }}/wordpress_sites.yml`). Please check your spelling and make sure the repository exists.
+{% elif unknown_hostkey %}
+The remote {{ host }} does not have a hostkey for the `repo: {{ repo }}` (the repo for site `{{ site }}` in `group_vars/{{ env }}/wordpress_sites.yml`).
+
+The recommended action is to add the hostkey to the `known_hosts` list variable in `group_vars/all/known_hosts.yml` then run `server.yml` which will add the hostkey to your remote:
+```
+ansible-playbook server.yml -e env={{ env }} --tags known-hosts
+```
+Then try your deploy again.
+
+Alternatively, you could set `accept_git_hostkey: true` in `group_vars/all/security.yml` and try your deploy again, but this is less secure (more susceptible to a man-in-the-middle attack).
+
+More info: https://roots.io/trellis/docs/security/#known-hosts
+{% elif git_not_installed %}
+It appears that git is not installed on the remote. Be sure you have run `server.yml` before running `deploy.yml`.
+
+`server.yml` will provision the server, installing git and other important packages.
+{% endif %}

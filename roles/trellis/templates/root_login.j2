@@ -1,0 +1,7 @@
+It is a security vulnerability to permit SSH root login.
+In `group_vars/all/security.yml`, set `sshd_permit_root_login: false`
+then run:
+```
+ansible-playbook {{ playbook }} -e env={{ _env }} --tags sshd
+```
+More info: C_BOLDhttps://roots.io/trellis/docs/security/C_BOLD

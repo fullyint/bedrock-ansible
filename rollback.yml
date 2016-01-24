@@ -1,14 +1,10 @@
 ---
-- include: variable-check.yml
-  vars:
-    playbook: rollback.yml
-
 - name: Rollback a Deploy
   hosts: web:&{{ env }}
   remote_user: "{{ web_user }}"
-
   vars:
+    playbook: rollback.yml
     project_root: "{{ www_root }}/{{ site }}"
-
   roles:
-    - rollback
+    - { role: trellis, tags: [trellis, always] }
+    - { role: rollback, tags: [rollback] }

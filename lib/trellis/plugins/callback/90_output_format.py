@@ -44,13 +44,15 @@ class CallbackModule(TrellisCallbackBase, CallbackBase):
 
         # Configs manually defined here
         self.header_fail = '  Trellis Debug'
+        self.header_ok = '  Playbook Completed Successfully'
+        self.header_tips = 'Tips:'
         self.output_docs = 'To manage this output, see https://roots.io/trellis/docs/cli-output/'
 
         # Auto-populated variables
-        self.disabled = False
         self.error_task = None
         self.error_msg = []
         self.vagrant_version = None
+        self.tips = None
 
         # Optional configs from trellis.cfg
         self.colorize_code = C.get_config(self.cfg, 'output_custom', 'colorize_code', 'TRELLIS_COLORIZE_CODE', True, boolean=True)
@@ -155,7 +157,7 @@ class CallbackModule(TrellisCallbackBase, CallbackBase):
             return output
 
         msg = ''
-        error = 'failed' in result or 'unreachable' in result
+        error = True if 'play_error' in result or 'failed' in result or 'unreachable' in result else False
 
         # Only display msg if debug module or if failed (some modules have undesired 'msg' on 'ok')
         if 'msg' in result and (error or self.action == 'debug'):
@@ -217,8 +219,8 @@ class CallbackModule(TrellisCallbackBase, CallbackBase):
             if len(self.hosts) > 1 and not self.task_run_once:
                 host_prefix = '[{0}]: '.format(result._host.get_name())
 
-            # Save output to display in v2_playbook_on_stats if error, else display now
-            if result.is_failed() or result.is_unreachable():
+            # If error, save output to display in v2_playbook_on_stats, else display now
+            if 'play_error' in result._result or result.is_failed() or result.is_unreachable():
                 host_prefix = stringc(host_prefix, self.color_error)
                 self.error_msg.append(''.join([host_prefix, output]))
             else:
@@ -240,11 +242,31 @@ class CallbackModule(TrellisCallbackBase, CallbackBase):
     def v2_runner_on_unreachable(self, result):
         self.display_output(result)
 
+    def v2_playbook_on_start(self, playbook):
+        super(CallbackModule, self).v2_playbook_on_start(playbook)
+        # Print custom message added in `messages.py` callback plugin
+        try:
+            self.display_output(playbook)
+        except AttributeError:
+            pass
+
+    def v2_playbook_on_no_hosts_matched(self):
+        # Print custom message added in `messages.py` callback plugin
+        try:
+            self.display_output(self.play_obj)
+        except AttributeError:
+            pass
+
+    def v2_playbook_on_task_start(self, task, is_conditional):
+        super(CallbackModule, self).v2_playbook_on_task_start(task, is_conditional)
+
     def v2_playbook_on_handler_task_start(self, task):
         super(CallbackModule, self).v2_playbook_on_handler_task_start(task)
 
     def v2_playbook_on_play_start(self, play):
         super(CallbackModule, self).v2_playbook_on_play_start(play)
+        self.disabled = not self.custom_output
+
         play.vars['ansible_colors'] = ''.join([stringc(color.ljust(int(self.wrap_width/3)), color)
                                                for color in codeCodes.keys()])
         play.vars['color_settings'] = '\n'.join([
@@ -263,13 +285,8 @@ class CallbackModule(TrellisCallbackBase, CallbackBase):
         # Check for relevant settings or overrides passed via cli --extra-vars
         loader = DataLoader()
         play_vars = play.get_variable_manager().get_vars(loader=loader, play=play)
-
         if 'vagrant_version' in play_vars:
             self.vagrant_version = play_vars['vagrant_version']
-
-        self.disabled = not self.custom_output
-        if 'wrap_width' in play_vars:
-            self.wrap_width = int(play_vars['wrap_width'])
 
     def v2_playbook_on_stats(self, stats):
         if self.error_msg:
@@ -294,3 +311,7 @@ class CallbackModule(TrellisCallbackBase, CallbackBase):
             output = '\n'.join(['', header, '', error_msg, footer, hr, '\n'])
 
             self._display.display(output)
+
+        # Display tips here, with stats, after any handlers have run
+        if not stats.failures and self.tips:
+            self._display.display(self.tips.rstrip())

@@ -1,0 +1,19 @@
+The attribute `{{ attribute }}` is missing from your copy of a dictionary used in this task. Tips for debugging:
+
+1 - Find attribute `{{ attribute }}` in the official Trellis repository, using it as a guide to add the attribute to your project vars files. Try this url to search for the attribute:
+```
+{{ search_url_attribute }}
+```
+
+2 - Review the task definition to identify the relevant dictionary and attribute needed. Try this url to search for the definition of the task named "{{ task }}":
+```
+{{ search_url_task }}
+```
+
+What is a dict? Consider this:
+```
+dict_1:
+  attribute_a: value_a
+  attribute_b: value_b
+```
+`dict_1` is a 'dict' (dictionary) in python. Other languages call these 'hashes.' If a task were to try to call `dict_1['attribute_c']` python would return the message "'dict object' has no attribute 'attribute_c'". The `wordpress_sites` dict is an example of an actual dict in Trellis.
