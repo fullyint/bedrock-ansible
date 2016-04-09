@@ -10,11 +10,13 @@ from ansible.plugins.callback.default import CallbackModule as CallbackModule_de
 from ansible.utils.unicode import to_unicode
 
 try:
+    from trellis.utils import color as color
     from trellis.utils import output as output
 except ImportError:
     ansible_path = os.getenv('ANSIBLE_CONFIG', os.getcwd())
     if sys.path.append(os.path.join(ansible_path, 'lib')) in sys.path: raise
     sys.path.append(sys.path.append(os.path.join(ansible_path, 'lib')))
+    from trellis.utils import color as color
     from trellis.utils import output as output
 
 
@@ -65,6 +67,8 @@ class CallbackModule(CallbackModule_default):
         play_vars = play.get_variable_manager().get_vars(loader=loader, play=play)
         if 'vagrant_version' in play_vars:
             self.vagrant_version = play_vars['vagrant_version']
+
+        color.load_vars(self, play)
 
     def v2_playbook_on_stats(self, stats):
         super(CallbackModule, self).v2_playbook_on_stats(stats)

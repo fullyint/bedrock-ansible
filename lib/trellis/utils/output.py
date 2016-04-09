@@ -5,11 +5,17 @@ __metaclass__ = type
 import os.path
 import platform
 import re
-import textwrap
 
 from ansible import __version__
 from ansible import constants as C
 from ansible.utils.unicode import to_unicode
+
+try:
+    from trellis.utils import color as color
+except ImportError:
+    if sys.path.append(os.path.join(os.getcwd(), 'lib')) in sys.path: raise
+    sys.path.append(sys.path.append(os.path.join(os.getcwd(), 'lib')))
+    from trellis.utils import color as color
 
 def load_configs(obj):
     obj.wrap_width = int(C.get_config(C.p, 'trellis_output', 'wrap_width', 'TRELLIS_WRAP_WIDTH', 80))
@@ -19,6 +25,7 @@ def load_configs(obj):
         C.get_config(C.p, 'trellis_output', 'display_skipped_items', 'TRELLIS_DISPLAY_SKIPPED_ITEMS', False, boolean=True))
     obj.truncate_items = (not obj._display.verbosity and
         C.get_config(C.p, 'trellis_output', 'truncate_items', 'TRELLIS_TRUNCATE_ITEMS', True, boolean=True))
+    color.load_configs(obj)
 
 def system(vagrant_version=None):
     # Get most recent Trellis CHANGELOG entry
@@ -75,9 +82,8 @@ def display(obj, result):
     msg = ''
     result = result._result
     display = obj._display.display
-    wrap_width = obj.wrap_width
     first = obj.first_host and obj.first_item
-    failed = 'failed' in result or 'unreachable' in result
+    failed = ('failed' in result and result['failed']) or ('unreachable' in result and result['unreachable'])
 
     # Only display msg if debug module or if failed (some modules have undesired 'msg' on 'ok')
     if 'msg' in result and (failed or obj.action == 'debug'):
@@ -93,35 +99,35 @@ def display(obj, result):
         for item in items:
             msg = result[item] if msg == '' else '\n'.join([msg, result.pop(item, '')])
 
-        # Add blank line between this fail message and the json dump Ansible displays next
-        msg = '\n'.join([msg, ''])
-
     # Must pass unicode strings to Display.display() to prevent UnicodeError tracebacks
     if isinstance(msg, list):
         msg = '\n'.join([to_unicode(x) for x in msg])
     elif not isinstance(msg, unicode):
         msg = to_unicode(msg)
 
-    # Wrap text
-    msg = '\n'.join([textwrap.fill(line, wrap_width, replace_whitespace=False)
-                     for line in msg.splitlines()])
+    # Apply color and textwrap
+    msg = color.split_and_colorize(obj, msg, failed)
+
+    # Add blank line between this fail message and the json dump Ansible displays next
+    if failed and msg != '':
+        msg = '\n'.join([msg, ''])
 
     # Display system info and msg, with horizontal rule between hosts/items
-    hr = '-' * int(wrap_width*.67)
+    hr = '-' * int(obj.wrap_width*.67)
 
     if obj.task_failed and first:
-        display(system(obj.vagrant_version), 'bright gray')
-        display(hr, 'bright gray')
+        display(system(obj.vagrant_version), color.none(obj.color_system_info))
+        display(hr, color.none(obj.color_hr))
 
     if msg == '':
         if obj.task_failed and not first:
-            display(hr, 'bright gray')
+            display(hr, color.none(obj.color_hr))
         else:
             return
     else:
         if not first:
-            display(hr, 'bright gray')
-        display(msg, 'red' if failed else 'bright purple')
+            display(hr, color.none(obj.color_hr))
+        display(msg)
 
 def display_host(obj, result):
     if 'results' not in result._result:
