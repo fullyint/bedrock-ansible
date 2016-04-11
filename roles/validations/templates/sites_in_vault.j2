@@ -1,0 +1,1 @@
+`{{ unvaulted_sites | join('`, `') + (unvaulted_sites | count > 1) | ternary('` appear', '` appears') }} in `group_vars/{{ env }}/wordpress_sites.yml` and must also be added to the `vault_wordpress_sites` list in `group_vars/{{ env }}/vault.yml`

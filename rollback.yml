@@ -11,4 +11,5 @@
     project_root: "{{ www_root }}/{{ site }}"
 
   roles:
-    - rollback
+    - { role: validations, tags: [validations, always], playbook: 'rollback.yml' }
+    - { role: rollback, tags: [rollback] }
