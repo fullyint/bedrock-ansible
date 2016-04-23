@@ -5,15 +5,19 @@ __metaclass__ = type
 import os.path
 import sys
 
+from __main__ import cli
+
 from ansible.parsing.dataloader import DataLoader
 from ansible.plugins.callback.default import CallbackModule as CallbackModule_default
 
 try:
+    from trellis.utils import msgs as msgs
     from trellis.utils import output as output
 except ImportError:
     ansible_path = os.getenv('ANSIBLE_CONFIG', os.getcwd())
     if sys.path.append(os.path.join(ansible_path, 'lib')) in sys.path: raise
     sys.path.append(sys.path.append(os.path.join(ansible_path, 'lib')))
+    from trellis.utils import msgs as msgs
     from trellis.utils import output as output
 
 
@@ -27,6 +31,7 @@ class CallbackModule(CallbackModule_default):
     def __init__(self):
         super(CallbackModule, self).__init__()
         output.reset_task_info(self)
+        self.cli = cli if cli else None
 
     def v2_runner_on_failed(self, result, ignore_errors=False):
         self.task_failed = True
@@ -43,6 +48,7 @@ class CallbackModule(CallbackModule_default):
 
     def v2_runner_on_unreachable(self, result):
         self.task_failed = True
+        msgs.unreachable(self, result)
         output.display_host(self, result)
         super(CallbackModule, self).v2_runner_on_unreachable(result)
 
