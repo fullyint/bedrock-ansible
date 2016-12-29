@@ -4,22 +4,64 @@
 ssh_client_hardening: true              # SSH
 ssh_server_hardening: true              # SSHD
 
-# Set to true if CBC for ciphers is required.
+# Set to true if CBC mode ciphers are required.
 ssh_client_cbc_required: false          # SSH
 ssh_server_cbc_required: false          # SSHD
+
+# Ciphers to allow.
+ssh_ciphers_default:                    # SSHD + SSH
+  - chacha20-poly1305@openssh.com
+  - aes256-gcm@openssh.com
+  - aes128-gcm@openssh.com
+  - aes256-ctr
+  - aes192-ctr
+  - aes128-ctr
+
+# Additional ciphers to allow when `*_cbc_required: true`.
+ssh_ciphers_weak:                       # SSHD + SSH
+  - aes256-cbc
+  - aes192-cbc
+  - aes128-cbc
 
 # Set to true if weaker HMAC mechanisms are required.
 ssh_client_weak_hmac: false             # SSH
 ssh_server_weak_hmac: false             # SSHD
 
+# MACs to make available.
+ssh_macs_default:                       # SSHD + SSH
+  - hmac-sha2-512-etm@openssh.com
+  - hmac-sha2-256-etm@openssh.com
+  - hmac-ripemd160-etm@openssh.com
+  - umac-128-etm@openssh.com
+  - hmac-sha2-512
+  - hmac-sha2-256
+  - hmac-ripemd160
+
+# Additional MACs to make available when `*_weak_hmac: true`.
+ssh_macs_weak:                          # SSHD + SSH
+  - umac-128@openssh.com
+  - hmac-sha1
+
 # Set to true if weaker Key-Exchange (KEX) mechanisms are required.
 ssh_client_weak_kex: false              # SSH
 ssh_server_weak_kex: false              # SSHD
+
+# KEX algorithms to make available.
+ssh_kex_default:                        # SSHD + SSH
+  - curve25519-sha256@libssh.org
+  - diffie-hellman-group-exchange-sha256
+
+# Additional KEX algorithms to make available when `*_weak_kex: true`.
+ssh_kex_weak:                           # SSHD + SSH
+  - diffie-hellman-group14-sha1
+  - diffie-hellman-group-exchange-sha1
+  - diffie-hellman-group1-sha1
 
 # Set to true to allow logins with passwords.
 ssh_client_password_login: false        # SSH
 ssh_server_password_login: false        # SSHD
 
+# Set to `true` if IPv6 is needed.
 network_ipv6_enable: false              # SSHD + SSH
 
 # Port to which ssh-client should connect.
@@ -29,11 +71,19 @@ ssh_client_port: 22                     # SSH
 ssh_server_ports:                       # SSHD
   - 22
 
-# IP addresses which ssh-server should listen to, configure for extra security.
+# IP addresses which ssh-server should listen to. Use to create a secure whitelist.
 ssh_listen_to:                          # SSHD
   - 0.0.0.0
 
-# Host keys to look for when starting SSHD.
+# Policy on adding keys to the `known_hosts` file.
+ssh_strict_hostkey_checking: ask        # SSH
+
+# SSH key files the client should try.
+ssh_identity_files:                     # SSH
+  - ~/.ssh/id_ed25519
+  - ~/.ssh/id_rsa
+
+# Host keys the server should use.
 ssh_host_key_files:                     # SSHD
   - /etc/ssh/ssh_host_ed25519_key
   - /etc/ssh/ssh_host_rsa_key
@@ -47,9 +97,12 @@ ssh_host_key_algorithms:                # SSH
 
 # Specifies the maximum number of authentication attempts permitted per connection.
 # Once the number of failures reaches half this value, additional failures are logged.
-ssh_max_auth_retries: 6
+ssh_max_auth_retries: 6                 # SSHD
 
+# Number of seconds of inactivity before server should send client a keepalive message.
 ssh_client_alive_interval: 600          # SSHD
+
+# Number of keepalive messages server should send without response before disconnecting.
 ssh_client_alive_count: 3               # SSHD
 
 # Example hosts with custom options.
@@ -66,13 +119,13 @@ ssh_client_alive_count: 3               # SSHD
 #       - StrictHostKeyChecking no
 ssh_remote_hosts: []                    # SSH
 
-# Set to true to allow root to login via key-based mechanism.
-ssh_allow_root_with_key: false          # SSHD
+# Set to false to disable root login altogether.
+ssh_allow_root_with_key: true           # SSHD
 
-# Set to true to allow TCP Forwarding.
+# Set to true to allow TCP forwarding.
 ssh_allow_tcp_forwarding: false         # SSHD
 
-# Set to false to disable Agent Forwarding.
+# Set to false to disable agent forwarding.
 ssh_allow_agent_forwarding: true        # SSHD
 
 # PAM authentication enabled to avoid Debian bug with openssh-server.
@@ -81,21 +134,21 @@ ssh_allow_agent_forwarding: true        # SSHD
 ssh_use_pam: true                       # SSHD
 
 # Login is disallowed for user names that match one of the patterns.
-ssh_deny_users: ''                      # SSHD
+ssh_deny_users: []                      # SSHD
 
 # Login is allowed only for user names that match one of the patterns.
-ssh_allow_users: ''                     # SSHD
+ssh_allow_users: []                     # SSHD
 
 # Login is disallowed for users whose primary group or supplementary group list matches one of the patterns.
-ssh_deny_groups: ''                     # SSHD
+ssh_deny_groups: []                     # SSHD
 
 # Login is allowed only for users whose primary group or supplementary group list matches one of the patterns.
-ssh_allow_groups: ''                    # SSHD
+ssh_allow_groups: []                    # SSHD
 
-# Set to true to enable printing of the MOTD.
+# Set to true to enable printing the MOTD.
 ssh_print_motd: false                   # SSHD
 
-# Set to true to display last login information.
+# Set to true for login to display info from previous login.
 ssh_print_last_log: false               # SSHD
 
 # Set to true to display /etc/ssh/banner.txt before authentication is allowed.
@@ -104,43 +157,21 @@ ssh_banner: false                       # SSHD
 # Set to false to disable distribution version leakage during initial protocol handshake.
 ssh_print_debian_banner: false          # SSHD
 
-ssh_send_env: ''                        # SSH
-ssh_accept_env: ''                      # SSHD
+# List of environment variables the ssh-client should send to the remote server.
+ssh_send_env: []                        # SSH
 
-# Set to true to enable SFTP configuration.
-sftp_enabled: false
+# List of environment variables sent by the client that will be copied into the ssh-server's session environ.
+ssh_accept_env: []                      # SSHD
+
+# Set to false to disable SFTP configuration.
+# If `sftp_enabled: false`, add `scp_if_ssh = True` in ansible.cfg
+# so that Ansible will use SCP to copy files instead of the default SFTP.
+sftp_enabled: true                      # SSHD
 
 # Change default SFTP chroot location.
-sftp_chroot_dir: /home/%u
+sftp_chroot_dir: /home/%u               # SSHD
 
 # Enable experimental client roaming.
-ssh_client_roaming: false
+ssh_client_roaming: false               # SSH
 
 use_privilege_separation: sandbox       # SSHD
-
-ssh_macs_default:
-  - hmac-sha2-512-etm@openssh.com
-  - hmac-sha2-256-etm@openssh.com
-  - hmac-ripemd160-etm@openssh.com
-  - umac-128-etm@openssh.com
-  - hmac-sha2-512
-  - hmac-sha2-256
-  - hmac-ripemd160
-
-ssh_macs_weak: "{{ ssh_macs_default + ['umac-128@openssh.com','hmac-sha1'] }}"
-
-ssh_ciphers_default:
-  - chacha20-poly1305@openssh.com
-  - aes256-gcm@openssh.com
-  - aes128-gcm@openssh.com
-  - aes256-ctr
-  - aes192-ctr
-  - aes128-ctr
-
-ssh_ciphers_weak: "{{ ssh_ciphers_default + ['aes256-cbc', 'aes192-cbc', 'aes128-cbc'] }}"
-
-ssh_kex_default:
-  - curve25519-sha256@libssh.org
-  - diffie-hellman-group-exchange-sha256
-
-ssh_kex_weak: "{{ ssh_kex_default + ['diffie-hellman-group14-sha1', 'diffie-hellman-group-exchange-sha1', 'diffie-hellman-group1-sha1'] }}"

@@ -11,40 +11,55 @@ This role provides secure ssh-client and ssh-server configurations.
 ## Role Variables
 | Name           | Default Value | Description                        |
 | -------------- | ------------- | -----------------------------------|
-|`network_ipv6_enable` | false |true if IPv6 is needed|
-|`ssh_client_cbc_required` | false |true if CBC for ciphers is required. This is usually only necessary, if older M2M mechanism need to communicate with SSH, that don't have any of the configured secure ciphers enabled. CBC is a weak alternative. Anything weaker should be avoided and is thus not available.|
-|`ssh_server_cbc_required` | false |true if CBC for ciphers is required. This is usually only necessary, if older M2M mechanism need to communicate with SSH, that don't have any of the configured secure ciphers enabled. CBC is a weak alternative. Anything weaker should be avoided and is thus not available.|
-|`ssh_client_weak_hmac` | false |true if weaker HMAC mechanisms are required. This is usually only necessary, if older M2M mechanism need to communicate with SSH, that don't have any of the configured secure HMACs enabled.|
-|`ssh_server_weak_hmac` | false |true if weaker HMAC mechanisms are required. This is usually only necessary, if older M2M mechanism need to communicate with SSH, that don't have any of the configured secure HMACs enabled.|
-|`ssh_client_weak_kex` | false |true if weaker Key-Exchange (KEX) mechanisms are required. This is usually only necessary, if older M2M mechanism need to communicate with SSH, that don't have any of the configured secure KEXs enabled.|
-|`ssh_server_weak_kex` | false |true if weaker Key-Exchange (KEX) mechanisms are required. This is usually only necessary, if older M2M mechanism need to communicate with SSH, that don't have any of the configured secure KEXs enabled.|
-|`ssh_server_ports` | ['22'] |ports on which ssh-server should listen|
-|`ssh_client_port` | '22' |port to which ssh-client should connect|
-|`ssh_listen_to` | ['0.0.0.0'] |one or more ip addresses, to which ssh-server should listen to. Default is all adresseses, but should be configured to specific addresses for security reasons!|
-|`ssh_host_key_files` | ['/etc/ssh/ssh_host_ed25519_key', '/etc/ssh/ssh_host_rsa_key'] |Host keys to look for when starting sshd.|
-|`ssh_host_key_algorithms` | ['ssh-ed25519-cert-v01@openssh.com', 'ssh-rsa-cert-v01@openssh.com', 'ssh-ed25519', 'ssh-rsa'] |Host key algorithms that the ssh-client wants to use, in order of preference.|
-|`ssh_client_alive_interval` | 600 | specifies an interval for sending keepalive messages |
-|`ssh_client_alive_count` | 3 | defines how often keep-alive messages are sent |
-|`ssh_remote_hosts` | [] | one or more hosts and their custom options for the ssh-client. Default is empty. See examples in `defaults/main.yml`.|
-|`ssh_allow_root_with_key` | false | false to disable root login altogether. Set to true to allow root to login via key-based mechanism.|
-|`ssh_allow_tcp_forwarding` | false | false to disable TCP Forwarding. Set to true to allow TCP Forwarding.|
-|`ssh_allow_agent_forwarding` | true | false to disable Agent Forwarding. Set to true to allow Agent Forwarding.|
-|`ssh_use_pam` | true | pam authentication enabled to avoid Debian [bug #751636](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=751636) with openssh-server.|
-|`ssh_deny_users` | '' | if specified, login is disallowed for user names that match one of the patterns.|
-|`ssh_allow_users` | '' | if specified, login is allowed only for user names that match one of the patterns.|
-|`ssh_deny_groups` | '' | if specified, login is disallowed for users whose primary group or supplementary group list matches one of the patterns.|
-|`ssh_allow_groups` | '' | if specified, login is allowed only for users whose primary group or supplementary group list matches one of the patterns.|
-|`ssh_print_motd` | false | false to disable printing of the MOTD|
-|`ssh_print_last_log` | false | false to disable display of last login information|
-|`ssh_send_env` | '' | if specified, indicates which variables the ssh-client should send to the remote server.|
-|`ssh_accept_env` | '' | if specified, indicates which variables sent by the client will be copied into the ssh-server's session environ. Avoid accepting any variables, if possible.|
-|`sftp_enabled` | false | true to enable sftp configuration|
-|`sftp_chroot_dir` | /home/%u | change default sftp chroot location|
-|`ssh_client_roaming` | false | enable experimental client roaming|
+|`ssh_client_hardening` | `true` | `true` to apply this role's settings and template to `/etc/ssh/ssh_config`.|
+|`ssh_server_hardening` | `true` | `true` to apply this role's settings and template to `/etc/ssh/sshd_config`.|
+|`ssh_client_cbc_required` | `false` | `false` to avoid CBC mode ciphers.|
+|`ssh_server_cbc_required` | `false` | `false` to avoid CBC mode ciphers.|
+|`ssh_ciphers_default` | `['chacha20-poly1305@openssh.com',`<br/>` 'aes256-gcm@openssh.com',`<br/>` 'aes128-gcm@openssh.com',`<br/>` 'aes256-ctr',`<br/>` 'aes192-ctr',`<br/>` 'aes128-ctr']` | Ciphers to allow.|
+|`ssh_ciphers_weak` | `['aes256-cbc',`<br/>` 'aes192-cbc',`<br/>` 'aes128-cbc']` | Additional ciphers to allow when `*_cbc_required: true`.|
+|`ssh_client_weak_hmac` | `false` | `false` to avoid weaker message authentication codes (MACs).|
+|`ssh_server_weak_hmac` | `false` | `false` to avoid weaker MACs.|
+|`ssh_macs_default` | `['hmac-sha2-512-etm@openssh.com',`<br/>` 'hmac-sha2-256-etm@openssh.com',`<br/>` 'hmac-ripemd160-etm@openssh.com',`<br/>` 'umac-128-etm@openssh.com',`<br/>` 'hmac-sha2-512',`<br/>` 'hmac-sha2-256',`<br/>` 'hmac-ripemd160']` | MACs to make available.|
+|`ssh_macs_weak` | `['umac-128@openssh.com',`<br/>` 'hmac-sha1']` | Additional MACs to make available when `*_weak_hmac: true`.|
+|`ssh_client_weak_kex` | `false` | `false` to avoid weaker Key Exchange (KEX) algorithms.|
+|`ssh_server_weak_kex` | `false` | `false` to avoid weaker KEX algorithms.|
+|`ssh_kex_default` | `['curve25519-sha256@libssh.org',`<br/>` 'diffie-hellman-group-exchange-sha256']` | KEX algorithms to make available.|
+|`ssh_kex_weak` | `['diffie-hellman-group14-sha1',`<br/>` 'diffie-hellman-group-exchange-sha1',`<br/>` 'diffie-hellman-group1-sha1']` | Additional KEX algorithms to make available when `*_weak_kex: true`.|
+|`ssh_client_password_login` | `false` | `false` for client to forbid password login.|
+|`ssh_server_password_login` | `false` | `false` for server to forbid password login.|
+|`network_ipv6_enable` | `false` | Set to `true` if IPv6 is needed.|
+|`ssh_client_port` | `22` | Port to which the client should connect.|
+|`ssh_server_ports` | `['22']` | Ports on which the server should listen.|
+|`ssh_listen_to` | `['0.0.0.0']` | IPs to which the server should listen.|
+|`ssh_strict_hostkey_checking` | `ask` | Policy on adding keys to `known_hosts`.|
+|`ssh_identity_files`| `['~/.ssh/id_ed25519',`<br/>` '~/.ssh/id_rsa']` | SSH key files the client should try.|
+|`ssh_host_key_files` | `['/etc/ssh/ssh_host_ed25519_key',`<br/>` '/etc/ssh/ssh_host_rsa_key']` | Host keys the server should use.|
+|`ssh_host_key_algorithms` | `['ssh-ed25519-cert-v01@openssh.com',`<br/>` 'ssh-rsa-cert-v01@openssh.com',`<br/>` 'ssh-ed25519',`<br/>` 'ssh-rsa']` | Host key algorithms that the ssh-client wants to use, in order of preference.|
+|`ssh_max_auth_retries` | `6` | The maximum number of authentication attempts permitted per connection. Once the number of failures reaches half this value, additional failures are logged.|
+|`ssh_client_alive_interval` | `600` | The number of seconds of inactivity before the server should send keepalive message.|
+|`ssh_client_alive_count` | `3` | The number of keepalive messages the server should send (without response) before disconnecting.|
+|`ssh_remote_hosts` | `[]` | Hosts and their custom options for the ssh-client. Examples in `defaults/main.yml`.|
+|`ssh_allow_root_with_key` | `true` | `true` to allow `root` user to login via SSH key. Set to `false` to disable `root` login.|
+|`ssh_allow_tcp_forwarding` | `false` | `false` to disable TCP forwarding.|
+|`ssh_allow_agent_forwarding` | `true` | `true` to allow agent forwarding.|
+|`ssh_use_pam` | `true` | PAM authentication enabled to avoid Debian [bug #751636](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=751636) with openssh-server.|
+|`ssh_deny_users` | `[]` | User name patterns forbidden login.|
+|`ssh_allow_users` | `[]` | The only user name patterns granted login.|
+|`ssh_deny_groups` | `[]` | Group name patterns forbidden login.|
+|`ssh_allow_groups` | `[]` | The only group name patterns granted login.|
+|`ssh_print_motd` | `false` | `false` to disable printing the MOTD.|
+|`ssh_print_last_log` | `false` | `false` to disable display of previous login info.|
+|`ssh_banner` | `false` | `false` to withhold `/etc/ssh/banner.txt` during pre-authentication.|
+|`ssh_print_debian_banner` | `false` | `false` to disable distribution version leakage during initial protocol handshake.|
+|`ssh_send_env` | `[]` | List of environment variables the ssh-client should send to the remote server.|
+|`ssh_accept_env` | `[]` | List of environment variables sent by the client that will be copied into the server's session environ. Avoid accepting any.|
+|`sftp_enabled` | `true` | `true` to enable sftp configuration.|
+|`sftp_chroot_dir` | `/home/%u` | The default sftp `chroot` directory.|
+|`ssh_client_roaming` | `false` | `false` to disable client roaming.|
 
 ## FAQ / Pitfalls
 
-**I can't log into my account. I have registered the client key, but it still doesn't let me it.**
+### I can't log into my account. I have registered the client key, but it still doesn't let me in.
 
 If you have exhausted all typical issues (firewall, network, key missing, wrong key, account disabled etc.), it may be that your account is locked. The quickest way to find out is to look at the password hash for your user:
 
@@ -54,26 +69,24 @@ If the hash includes an `!`, your account is locked:
 
     myuser:!:16280:7:60:7:::
 
-The proper way to solve this is to unlock the account (`passwd -u myuser`). If the user doesn't have a password, you should can unlock it via:
+The proper way to solve this is to unlock the account (`passwd -u myuser`). If the user doesn't have a password, you can unlock it via:
 
     usermod -p "*" myuser
 
-Alternatively, if you intend to use PAM, you enabled it via `ssh_use_pam: true`. PAM will allow locked users to get in with keys.
+Alternatively, PAM will allow locked users to get in with keys. PAM is enabled via role variable `ssh_use_pam: true`.
 
 
-**Why doesn't my application connect via SSH anymore?**
+### Why doesn't my application connect via SSH anymore?
 
-Always look into log files first and if possible look at the negotation between client and server that is completed when connecting.
+Always look into log files first, ideally evaluating the intial negotation of the connection between client and server.
 
-We have seen some issues in applications (based on python and ruby) that are due to their use of an outdated crypto set. This collides with this hardening module, which reduced the list of ciphers, message authentication codes (MACs) and key exchange (KEX) algorithms to a more secure selection.
+Some python and ruby applications use an outdated crypto set, possibly requiring you to use `true` for this role's variables for `*_cbc_required`, `*_weak_hmac`, or `*_weak_kex`.
 
-If you find this isn't enough, feel free to activate the attributes `cbc_requires` for ciphers, `weak_hmac` for MACs and `weak_kex`for KEX in the variables `ssh_client` or `ssh_server` based on where you want to support them.
+### After using this role, Ansible's template/copy/file module stops working!
 
-**After using the role Ansibles template/copy/file module does not work anymore!**
+If you set `sftp_enabled: false`, you must uncomment `scp_if_ssh = True` in your `ansible.cfg`. This way Ansible uses SCP to copy files instead of the default SFTP.
 
-This role deactivates SFTP. Ansible uses by default SFTP to transfer files to the remote hosts. You have to set `scp_if_ssh = True` in your ansible.cfg. This way Ansible uses SCP to copy files.
-
-**Cannot restart sshd-service due to lack of privileges**
+### I cannot restart sshd-service due to lack of privileges.
 
 If you get the following error when running handler "restart sshd"
 ```
