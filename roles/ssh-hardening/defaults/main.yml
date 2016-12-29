@@ -1,111 +1,122 @@
-# true if IPv6 is needed
-network_ipv6_enable: false              # sshd + ssh
+# Documentation: https://roots.io/trellis/docs/security/
+# Which components to generate the configuration files for.
+# If remote machine doesn't have an SSH server then change the ssh_client_hardening to false.
+ssh_client_hardening: true              # SSH
+ssh_server_hardening: true              # SSHD
 
-# For which components (client and server) to generate the configuration for. Can be useful when running against a client without an SSH server.
-ssh_client_hardening: true          # ssh
-ssh_server_hardening: true          # sshd
+# Set to true if CBC for ciphers is required.
+ssh_client_cbc_required: false          # SSH
+ssh_server_cbc_required: false          # SSHD
 
-# true if CBC for ciphers is required. This is usually only necessary, if older M2M mechanism need to communicate with SSH, that don't have any of the configured secure ciphers enabled. CBC is a weak alternative. Anything weaker should be avoided and is thus not available.
-ssh_client_cbc_required: false          # ssh
-ssh_server_cbc_required: false          # sshd
+# Set to true if weaker HMAC mechanisms are required.
+ssh_client_weak_hmac: false             # SSH
+ssh_server_weak_hmac: false             # SSHD
 
-# true if weaker HMAC mechanisms are required. This is usually only necessary, if older M2M mechanism need to communicate with SSH, that don't have any of the configured secure HMACs enabled.
-ssh_client_weak_hmac: false             # ssh
-ssh_server_weak_hmac: false             # sshd
+# Set to true if weaker Key-Exchange (KEX) mechanisms are required.
+ssh_client_weak_kex: false              # SSH
+ssh_server_weak_kex: false              # SSHD
 
-# true if weaker Key-Exchange (KEX) mechanisms are required. This is usually only necessary, if older M2M mechanism need to communicate with SSH, that don't have any of the configured secure KEXs enabled.
-ssh_client_weak_kex: false              # ssh
-ssh_server_weak_kex: false              # sshd
+# Set to true to allow logins with passwords.
+ssh_client_password_login: false        # SSH
+ssh_server_password_login: false        # SSHD
 
-# If true, password login is allowed.
-ssh_client_password_login: false          # ssh
-ssh_server_password_login: false          # sshd
+network_ipv6_enable: false              # SSHD + SSH
 
-# ports on which ssh-server should listen
-ssh_server_ports: ['22']      # sshd
+# Port to which ssh-client should connect.
+ssh_client_port: 22                     # SSH
 
-# port to which ssh-client should connect
-ssh_client_port: '22'         # ssh
+# Ports on which ssh-server should listen.
+ssh_server_ports:                       # SSHD
+  - 22
 
-# one or more ip addresses, to which ssh-server should listen to. Default is empty, but should be configured for security reasons!
-ssh_listen_to: ['0.0.0.0']    # sshd
+# IP addresses which ssh-server should listen to, configure for extra security.
+ssh_listen_to:                          # SSHD
+  - 0.0.0.0
 
-# Host keys to look for when starting sshd.
-ssh_host_key_files: ['/etc/ssh/ssh_host_ed25519_key', '/etc/ssh/ssh_host_rsa_key']        # sshd
+# Host keys to look for when starting SSHD.
+ssh_host_key_files:                     # SSHD
+  - /etc/ssh/ssh_host_ed25519_key
+  - /etc/ssh/ssh_host_rsa_key
 
 # Specifies the host key algorithms that the client wants to use, in order of preference.
-ssh_host_key_algorithms:                # ssh
+ssh_host_key_algorithms:                # SSH
   - ssh-ed25519-cert-v01@openssh.com
   - ssh-rsa-cert-v01@openssh.com
   - ssh-ed25519
   - ssh-rsa
 
-# Specifies  the  maximum  number  of authentication attempts permitted per connection.  Once the number of failures reaches half this value, additional failures are logged.
+# Specifies the maximum number of authentication attempts permitted per connection.
+# Once the number of failures reaches half this value, additional failures are logged.
 ssh_max_auth_retries: 6
 
-ssh_client_alive_interval: 600          # sshd
-ssh_client_alive_count: 3               # sshd
+ssh_client_alive_interval: 600          # SSHD
+ssh_client_alive_count: 3               # SSHD
 
-# Hosts with custom options.            # ssh
-# Example:
+# Example hosts with custom options.
 # ssh_remote_hosts:
-#   - names: ['example.com', 'example2.com']
-#     options: ['Port 2222', 'ForwardAgent yes']
-#   - names: ['example3.com']
-#     options: ['StrictHostKeyChecking no']
-ssh_remote_hosts: []
+#   - names:
+#       - example.com
+#       - example2.com
+#     options:
+#       - Port 2222
+#       - ForwardAgent yes
+#   - names:
+#       - example3.com
+#     options:
+#       - StrictHostKeyChecking no
+ssh_remote_hosts: []                    # SSH
 
-# false to disable root login altogether. Set to true to allow root to login via key-based mechanism.
-ssh_allow_root_with_key: false          # sshd
+# Set to true to allow root to login via key-based mechanism.
+ssh_allow_root_with_key: false          # SSHD
 
-# false to disable TCP Forwarding. Set to true to allow TCP Forwarding.
-ssh_allow_tcp_forwarding: false         # sshd
+# Set to true to allow TCP Forwarding.
+ssh_allow_tcp_forwarding: false         # SSHD
 
-# false to disable Agent Forwarding. Set to true to allow Agent Forwarding.
-ssh_allow_agent_forwarding: true      # sshd
+# Set to false to disable Agent Forwarding.
+ssh_allow_agent_forwarding: true        # SSHD
 
-# pam authentication enabled to avoid Debian bug with openssh-server.
+# PAM authentication enabled to avoid Debian bug with openssh-server.
 # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=751636
 # can change to `false` once Canonical Main repository includes openssh 1:7.2p2-6
-ssh_use_pam: true     # sshd
+ssh_use_pam: true                       # SSHD
 
-# if specified, login is disallowed for user names that match one of the patterns.
-ssh_deny_users: ''      # sshd
+# Login is disallowed for user names that match one of the patterns.
+ssh_deny_users: ''                      # SSHD
 
-# if specified, login is allowed only for user names that match one of the patterns.
-ssh_allow_users: ''      # sshd
+# Login is allowed only for user names that match one of the patterns.
+ssh_allow_users: ''                     # SSHD
 
-# if specified, login is disallowed for users whose primary group or supplementary group list matches one of the patterns.
-ssh_deny_groups: ''      # sshd
+# Login is disallowed for users whose primary group or supplementary group list matches one of the patterns.
+ssh_deny_groups: ''                     # SSHD
 
-# if specified, login is allowed only for users whose primary group or supplementary group list matches one of the patterns.
-ssh_allow_groups: ''      # sshd
+# Login is allowed only for users whose primary group or supplementary group list matches one of the patterns.
+ssh_allow_groups: ''                    # SSHD
 
-# false to disable printing of the MOTD
-ssh_print_motd: false      # sshd
+# Set to true to enable printing of the MOTD.
+ssh_print_motd: false                   # SSHD
 
-# false to disable display of last login information
-ssh_print_last_log: false    # sshd
+# Set to true to display last login information.
+ssh_print_last_log: false               # SSHD
 
-# false to disable serving /etc/ssh/banner.txt before authentication is allowed
-ssh_banner: false # sshd
+# Set to true to display /etc/ssh/banner.txt before authentication is allowed.
+ssh_banner: false                       # SSHD
 
-# false to disable distribution version leakage during initial protocol handshake
-ssh_print_debian_banner: false # sshd
+# Set to false to disable distribution version leakage during initial protocol handshake.
+ssh_print_debian_banner: false          # SSHD
 
-ssh_send_env: ''      # ssh
-ssh_accept_env: ''    # sshd
+ssh_send_env: ''                        # SSH
+ssh_accept_env: ''                      # SSHD
 
-# true to enable sftp configuration
+# Set to true to enable SFTP configuration.
 sftp_enabled: false
 
-# change default sftp chroot location
+# Change default SFTP chroot location.
 sftp_chroot_dir: /home/%u
 
-# enable experimental client roaming
+# Enable experimental client roaming.
 ssh_client_roaming: false
 
-use_privilege_separation: 'sandbox'  # sshd
+use_privilege_separation: sandbox       # SSHD
 
 ssh_macs_default:
   - hmac-sha2-512-etm@openssh.com
