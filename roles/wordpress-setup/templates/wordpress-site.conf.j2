@@ -66,13 +66,19 @@ server {
     include fastcgi_params;
     fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
     fastcgi_param DOCUMENT_ROOT $realpath_root;
+    {% if item.value.ssl_terminated | default(false) -%}
+    fastcgi_param HTTPS on;
+    {% endif %}
     fastcgi_pass unix:/var/run/php-fpm-wordpress.sock;
   }
 }
 
-{% if ssl_enabled %}
+{% if ssl_enabled or item.value.ssl_terminated | default(false) %}
 server {
   listen 80;
+  {% if item.value.ssl_terminated | default(false) -%}
+  listen {{ item.value.ssl_terminated_http_port | default('8080') }}
+  {% endif %}
 
   server_name {{ site_hosts | join(' ') }}{% if item.value.multisite.subdomains | default(false) %} *.{{ site_hosts_canonical | join(' *.') }}{% endif %};
 
