@@ -10,6 +10,18 @@ def fail_with_message(msg)
   fail Vagrant::Errors::VagrantError.new, msg
 end
 
+def ensure_plugins(plugins)
+  logger = Vagrant::UI::Colored.new
+
+  plugins.each do |plugin|
+    manager = Vagrant::Plugin::Manager.instance
+    next if manager.installed_plugins.has_key?(plugin)
+
+    logger.warn("Installing plugin #{plugin}")
+    manager.install_plugin(plugin)
+  end
+end
+
 def load_wordpress_sites
   config_file = File.join(ANSIBLE_PATH, 'group_vars', 'development', 'wordpress_sites.yml')
 
