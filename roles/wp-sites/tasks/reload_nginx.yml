@@ -1,0 +1,15 @@
+---
+- name: Assign dynamic hosts to their respective <parent_host>-nginx-reload groups
+  group_by:
+    key: "{{ parent_host}}-nginx-reload"
+
+- name: test nginx config (only once per parent host)
+  command: nginx -t
+  register: test_nginx_config
+  when: inventory_hostname == groups[parent_host + '-nginx-reload'] | default(['']) | intersect(ansible_play_batch) | first
+
+- name: perform nginx reload (only once per parent host)
+  service:
+    name: nginx
+    state: reloaded
+  when: test_nginx_config | changed and not test_nginx_config | failed

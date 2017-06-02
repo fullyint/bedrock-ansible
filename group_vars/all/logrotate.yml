@@ -1,5 +1,5 @@
 # Documentation: https://galaxy.ansible.com/list#/roles/1117
-logrotate_scripts:
+logrotate_scripts_default:
   - name: wordpress-sites
     path: "{{ www_root }}/**/logs/*.log"
     options:

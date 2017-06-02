@@ -1,5 +1,4 @@
 disable_default_pool: true
-memcached_sessions: false
 
 php_extensions_default:
   php7.1-cli: "{{ apt_package_state }}"

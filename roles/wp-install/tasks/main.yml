@@ -1,0 +1,74 @@
+---
+- import_tasks: directories.yml
+  tags: wordpress-install-directories
+
+- name: Create .env file
+  template:
+    src: "env.j2"
+    dest: "/tmp/{{ site }}.env"
+    owner: "{{ web_user }}"
+    group: "{{ web_group }}"
+
+- name: Copy .env file into web root
+  command: rsync -ac --info=NAME /tmp/{{ site }}.env {{ www_root }}/{{ site }}/{{ current_path | default('current') }}/.env
+  register: env_file
+  changed_when: env_file.stdout == site + '.env'
+
+- name: Add known_hosts (only once per parent host)
+  known_hosts:
+    name: "{{ item.name }}"
+    key: "{{ item.key | default(omit) }}"
+    path: "{{ item.path | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+  when: designated_child_host
+  become: no
+  with_items: "{{ known_hosts | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Setup packagist.com authentication
+  composer:
+    command: config
+    arguments: --auth http-basic.repo.packagist.com token {{ packagist_token }}
+    working_dir: "{{ www_root }}/{{ site }}/{{ current_path | default('current') }}/"
+  no_log: true
+  become: no
+  when: packagist_token is defined
+
+- name: Install Dependencies with Composer
+  composer:
+    no_dev: no
+    optimize_autoloader: no
+    working_dir: "{{ www_root }}/{{ site }}/{{ current_path | default('current') }}/"
+  become: no
+
+- name: Install WP
+  command: wp core {{ multisite.enabled | default(false) | ternary('multisite-install', 'install') }}
+           --allow-root
+           --url="{{ site_env.wp_home }}"
+           {% if multisite.enabled | default(false) %}
+           --base="{{ multisite.base_path | default('/') }}"
+           --subdomains="{{ multisite.subdomains | default('false') }}"
+           {% endif %}
+           --title="{{ site_title | default(site) }}"
+           --admin_user="{{ wp_admin_user | default('admin') }}"
+           --admin_password="{{ wp_admin_password }}"
+           --admin_email="{{ wp_admin_email }}"
+  args:
+    chdir: "{{ www_root }}/{{ site }}/{{ current_path | default('current') }}/"
+  register: wp_install
+  # with_dict: "{{ wordpress_sites }}"
+  when: site_install | default(true)
+  changed_when: "'WordPress is already installed.' not in wp_install.stdout and 'The network already exists.' not in wp_install.stdout"
+
+- name: Setup Permalink Structure
+  command: wp rewrite structure {{ initial_permalink_structure | default("/%postname%/") }} --allow-root
+  args:
+    chdir: "{{ www_root }}/{{ site }}/{{ current_path | default('current') }}/"
+  when: wp_install | changed
+
+- name: Update WP Multisite Home URL
+  command: wp option update home {{ site_env.wp_home }} --allow-root
+  args:
+    chdir: "{{ www_root }}/{{ site }}/{{ current_path | default('current') }}/"
+  when: site_install | default(true) and multisite.enabled | default(false)

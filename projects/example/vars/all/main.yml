@@ -1,0 +1,2 @@
+# These IPs will be added to IPs in `ip_whitelist_default`
+ip_whitelist_for_project: []

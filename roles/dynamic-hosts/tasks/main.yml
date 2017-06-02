@@ -1,0 +1,83 @@
+---
+# If defined in group_vars, this processing-intensive var would be evaluated every time consumed
+- name: Evaluate and set dynamic_hosts var to spare future processing
+  set_fact:
+    dynamic_hosts: "{{ dynamic_hosts_for_projects + dynamic_hosts_for_groups }}"
+  run_once: true
+
+- name: Warn if no targets found for projects + sites combination
+  fail:
+    msg: "{{ lookup('template', 'no_targets_found.j2') }}"
+  when: not dynamic_hosts | count
+  run_once: true
+
+- name: Check that vault_site_vars contains all sites
+  fail:
+    msg: "{{ lookup('template', 'site_vars.j2') }}"
+  any_errors_fatal: true
+  when: site_vars_merged.keys() | difference(vault_site_vars_merged.keys()) |
+        intersect(_dynamic_hosts | selectattr('project', 'equalto', project) |
+        map(attribute='site') | list) | count
+  tags: [wordpress]
+
+- name: Validate format of site_hosts
+  fail:
+    msg: "{{ lookup('template', 'site_hosts.j2') }}"
+  with_dict: "{{ site_vars_merged }}"
+  any_errors_fatal: true
+  when: item.value.site_hosts | rejectattr('canonical', 'defined') | list | count
+  tags: [letsencrypt, wordpress]
+
+- block:
+  - name: Display targeted environment, projects, and sites
+    debug:
+      msg: |
+
+        Playbook will affect these targets
+        ----------------------------------
+        {{ lookup('template', 'playbook_confirmations.j2') }}
+    when: vagrant_provisioner | default(false) or
+          (env not in (playbook_confirmations.interactive | string) and not playbook_confirmations.interactive | bool)
+    run_once: true
+
+  - name: Confirm targeted environment, projects, and sites
+    pause:
+      prompt: |
+
+        Playbook will affect these targets. OK?
+        ---------------------------------------
+        {{ lookup('template', 'playbook_confirmations.j2') }}
+        (press RETURN to continue or CTRL+C to abort)
+        (disable confirmations in `group_vars/all/main.yml`)
+    when:
+      - not vagrant_provisioner | default(false)
+      - env in (playbook_confirmations.interactive | string) or playbook_confirmations.interactive | bool
+
+  when: playbook_confirmations.env in [true, env] or
+        playbook_confirmations.projects or
+        playbook_confirmations.hosts or
+        playbook_confirmations.sites
+
+- name: Add ansible_host to hostvars for use with dynamic hosts
+  set_fact:
+    ansible_host: "{{ ansible_host }}"
+
+- name: Create host-by-site dynamic hosts
+  add_host:
+    name: "{{ item.parent_host }}->{{ item.site }}"
+    groups: "{{ (item.groups + ['dynamic_hosts', item.parent_host + '-children', item.site]) |
+            difference(['vagrant_base_hosts']) | join(',') }}"
+    project: "{{ item.project }}"
+    parent_project: "{{ item.parent_project }}"
+    site: "{{ item.site }}"
+    ansible_host: "{{ item.ansible_host }}"
+    parent_host: "{{ item.parent_host }}"
+    parent_hosts: "{{ dynamic_hosts | map(attribute='parent_host') | list | unique }}"
+    ansible_user: "{{ item.ansible_user }}"
+    ansible_ssh_extra_args: "{{ item.ansible_ssh_extra_args }}"
+    ansible_connection: "{{ ansible_connection }}"
+    ansible_become_pass: "{{ item.ansible_become_pass }}"
+  with_items: "{{ dynamic_hosts }}"
+  changed_when: false
+  loop_control:
+    label: "{{ item.parent_host }}->{{ item.site }}"

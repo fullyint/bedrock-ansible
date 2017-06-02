@@ -23,17 +23,18 @@
   - name: Warn about updating network database.
     debug:
       msg: "Updating the network database could take a long time with a large number of sites."
-    when: project.update_db_on_deploy | default(update_db_on_deploy) and project.multisite.enabled | default(false)
+    when: update_db_on_deploy and multisite.enabled | default(false)
 
   - name: Update WP database
-    command: wp core update-db {{ project.multisite.enabled | default(false) | ternary('--network', '') }}
+    command: wp core update-db {{ multisite.enabled | default(false) | ternary('--network', '') }}
     args:
       chdir: "{{ deploy_helper.current_path }}"
-    when: project.update_db_on_deploy | default(update_db_on_deploy)
+    when: update_db_on_deploy
 
   when: wp_installed.rc == 0
 
-- name: Reload php-fpm
+- name: Reload php-fpm (only once per parent host)
   shell: sudo service php7.1-fpm reload
   args:
     warn: false
+  when: designated_child_host

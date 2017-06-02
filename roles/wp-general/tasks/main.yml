@@ -1,0 +1,30 @@
+---
+- name: Create web root
+  file:
+    path: "{{ www_root }}"
+    owner: "{{ web_user }}"
+    group: "{{ web_group }}"
+    mode: 0755
+    state: directory
+
+- name: Create WordPress php-fpm configuration file
+  template:
+    src: php-fpm.conf.j2
+    dest: /etc/php/7.1/fpm/pool.d/wordpress.conf
+  notify: reload php-fpm
+
+- name: Disable default PHP-FPM pool
+  command: mv /etc/php/7.1/fpm/pool.d/www.conf /etc/php/7.1/fpm/pool.d/www.disabled
+  args:
+    creates: /etc/php/7.1/fpm/pool.d/www.disabled
+  when: disable_default_pool | default(true)
+  notify: reload php-fpm
+
+- name: Create Nginx conf for challenges location
+  template:
+    src: "{{ playbook_dir }}/roles/letsencrypt-general/templates/acme-challenge-location.conf.j2"
+    dest: "{{ nginx_path }}/acme-challenge-location.conf"
+  notify: reload nginx
+
+- import_tasks: nginx-includes.yml
+  tags: [nginx-includes, wordpress-setup-nginx]

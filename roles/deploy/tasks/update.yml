@@ -5,13 +5,16 @@
     loop_var: include_path
   tags: deploy-update-before
 
-- name: Add known_hosts
+- name: Add known_hosts (only once per parent host)
   known_hosts:
     name: "{{ item.name }}"
     key: "{{ item.key | default(omit) }}"
     path: "{{ item.path | default(omit) }}"
     state: "{{ item.state | default('present') }}"
+  when: designated_child_host
   with_items: "{{ known_hosts | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
 
 - name: Check whether project source path is a git repo
   stat:
@@ -27,17 +30,17 @@
   changed_when: false
 
 - name: Update git remote URL
-  command: git remote set-url origin {{ project_git_repo }}
+  command: git remote set-url origin {{ repo }}
   args:
     chdir: "{{ project_source_path }}"
-  when: git_project.stat.exists and remote_origin_url.stdout != project_git_repo
+  when: git_project.stat.exists and remote_origin_url.stdout != repo
 
 - name: Clone project files
   git:
-    repo: "{{ project_git_repo }}"
+    repo: "{{ repo }}"
     dest: "{{ project_source_path }}"
-    version: "{{ project_version }}"
-    accept_hostkey: "{{ project.repo_accept_hostkey | default(repo_accept_hostkey | default(true)) }}"
+    version: "{{ branch }}"
+    accept_hostkey: "{{ repo_accept_hostkey }}"
   ignore_errors: true
   no_log: true
   register: git_clone
@@ -45,7 +48,7 @@
 - name: Failed connection to remote repo
   fail:
     msg: |
-      Git repo {{ project.repo }} cannot be accessed. Please verify the repository exists and you have SSH forwarding set up correctly.
+      Git repo {{ repo }} cannot be accessed. Please verify the repository exists and you have SSH forwarding set up correctly.
       More info:
       > https://roots.io/trellis/docs/deploys/#ssh-keys
       > https://roots.io/trellis/docs/ssh-keys/#cloning-remote-repo-using-ssh-agent-forwarding

@@ -1,0 +1,238 @@
+# {{ ansible_managed }}
+
+{% block server_before %}{% endblock %}
+
+server {
+  {% block server_id -%}
+  listen {{ ssl.enabled | ternary('[::]:443 ssl http2', '[::]:80') }};
+  listen {{ ssl.enabled | ternary('443 ssl http2', '80') }};
+  server_name {{ site_hosts_canonical | union(multisite_subdomains_wildcards) | join(' ') }};
+  {% endblock %}
+
+  {% block logs -%}
+  access_log   {{ www_root }}/{{ site }}/logs/access.log main;
+  error_log    {{ www_root }}/{{ site }}/logs/error.log;
+  {% endblock %}
+
+  {% block server_basic -%}
+  root  {{ www_root }}/{{ site }}/{{ current_path | default('current') }}/web;
+  index index.php index.htm index.html;
+  add_header Fastcgi-Cache $upstream_cache_status;
+
+  # Specify a charset
+  charset utf-8;
+
+  # Set the max body size equal to PHP's max POST size.
+  client_max_body_size {{ php_post_max_size | default('25m') | lower }};
+
+  {% if env | default('development') == 'development' -%}
+  # https://www.nginx.com/resources/wiki/start/topics/tutorials/config_pitfalls/#virtualbox
+  sendfile off;
+
+  {% endif -%}
+  {% endblock -%}
+
+  {% block cache_conditions -%}
+  {% if cache.enabled | default(false) -%}
+  # Fastcgi cache conditions
+  set $skip_cache 0;
+  if ($query_string != "") {
+    set $skip_cache 1;
+  }
+  if ($request_uri ~* "{{ cache.skip_cache_uri | default(nginx_skip_cache_uri) }}") {
+    set $skip_cache 1;
+  }
+  if ($http_cookie ~* "{{ cache.skip_cache_cookie | default(nginx_skip_cache_cookie) }}") {
+    set $skip_cache 1;
+  }
+
+  {% endif -%}
+  {% endblock -%}
+
+  {% block multisite_rewrites -%}
+  {% if multisite.enabled | default(false) -%}
+  # Multisite rewrites
+  {% if multisite.subdomains | default(false) -%}
+  rewrite ^/(wp-.*.php)$ /wp/$1 last;
+  rewrite ^/(wp-(content|admin|includes).*) /wp/$1 last;
+
+  {% else -%}
+  if (!-e $request_filename) {
+    rewrite /wp-admin$ $scheme://$host$uri/ permanent;
+    rewrite ^(/[^/]+)?(/wp-.*) /wp$2 last;
+    rewrite ^(/[^/]+)?(/.*\.php) /wp$2 last;
+  }
+
+  {% endif -%}
+  {% endif -%}
+  {% endblock -%}
+
+  {% block https -%}
+  {% if ssl.enabled -%}
+  # SSL configuration
+  include h5bp/directive-only/ssl.conf;
+  {% if ssl.stapling -%}
+  include h5bp/directive-only/ssl-stapling.conf;
+  {% endif -%}
+
+  ssl_dhparam /etc/nginx/ssl/dhparams.pem;
+  ssl_buffer_size 1400; # 1400 bytes to fit in one MTU
+
+  add_header Strict-Transport-Security "max-age={{ [hsts_max_age, hsts_include_subdomains, hsts_preload] | reject('none') | join('; ') }}";
+
+  {% if ssl.client_cert_url is defined -%}
+  ssl_verify_client       on;
+  ssl_client_certificate  {{ nginx_ssl_path }}/client-{{ (ssl.client_cert_url | hash('md5'))[:7] }}.crt;
+  {% endif -%}
+
+  {% if ssl.provider | default('manual') == 'manual' and ssl.cert is defined and ssl.key is defined -%}
+  ssl_certificate         {{ nginx_path }}/ssl/{{ ssl.cert | basename }};
+  ssl_certificate_key     {{ nginx_path }}/ssl/{{ ssl.key | basename }};
+
+  {% elif ssl.provider | default('manual') == 'letsencrypt' -%}
+  ssl_certificate         {{ nginx_path }}/ssl/letsencrypt/{{ site }}-{{ generate_cert_id.stdout }}-bundled.cert;
+  ssl_certificate_key     {{ nginx_path }}/ssl/letsencrypt/{{ site }}.key;
+
+  {% elif ssl.provider | default('manual') == 'self-signed' -%}
+  ssl_certificate         {{ nginx_path }}/ssl/{{ site }}.cert;
+  ssl_trusted_certificate {{ nginx_path }}/ssl/{{ site }}.cert;
+  ssl_certificate_key     {{ nginx_path }}/ssl/{{ site }}.key;
+
+  {% endif -%}
+  {% endif -%}
+  {% endblock -%}
+
+  {% block acme_challenge -%}
+  include acme-challenge-location.conf;
+
+  {% endblock -%}
+
+  {% block includes_d -%}
+  include includes.d/{{ site }}/*.conf;
+
+  {% endblock -%}
+
+  {% block location_uploads_php -%}
+  # Prevent PHP scripts from being executed inside the uploads folder.
+  location ~* /app/uploads/.*\.php$ {
+    deny all;
+  }
+  {% endblock %}
+
+  {% block location_primary -%}
+  location / {
+    try_files $uri $uri/ /index.php?$args;
+  }
+  {% endblock %}
+
+  {% block h5bp -%}
+  {% if h5bp.cache_file_descriptors -%}
+  include h5bp/directive-only/cache-file-descriptors.conf;
+  {% endif -%}
+
+  {% if h5bp.extra_security -%}
+  include h5bp/directive-only/extra-security.conf;
+  {% endif -%}
+
+  {% if h5bp.no_transform -%}
+  include h5bp/directive-only/no-transform.conf;
+  {% endif -%}
+
+  {% if h5bp.x_ua_compatible -%}
+  include h5bp/directive-only/x-ua-compatible.conf;
+  {% endif -%}
+
+  {% if h5bp.cache_busting -%}
+  include h5bp/location/cache-busting.conf;
+  {% endif -%}
+
+  {% if h5bp.cross_domain_fonts -%}
+  include h5bp/location/cross-domain-fonts.conf;
+  {% endif -%}
+
+  {% if h5bp.expires -%}
+  include h5bp/location/expires.conf;
+  {% endif -%}
+
+  {% if h5bp.protect_system_files -%}
+  include h5bp/location/protect-system-files.conf;
+  {% endif -%}
+
+  {% endblock %}
+
+  {% block location_php -%}
+  location ~ \.php$ {
+    {% block location_php_basic -%}
+    try_files $uri /index.php;
+
+    {% endblock -%}
+
+    {% block cache_config -%}
+    {% if cache is defined and cache.enabled | default(false) -%}
+    # Fastcgi cache settings
+    fastcgi_cache wordpress;
+    fastcgi_cache_valid {{ cache.duration | default(nginx_cache_duration) }};
+    fastcgi_cache_bypass $skip_cache;
+    fastcgi_no_cache $skip_cache;
+
+    {% endif -%}
+    {% endblock -%}
+
+    {% block fastcgi_basic -%}
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+    fastcgi_param DOCUMENT_ROOT $realpath_root;
+    fastcgi_pass unix:/var/run/php-fpm-wordpress.sock;
+    {%- endblock %}
+
+  }
+  {%- endblock %}
+
+}
+
+{% block redirects_https %}
+{% if ssl.enabled %}
+# Redirect to https
+server {
+  listen [::]:80;
+  listen 80;
+  server_name {{ site_hosts_canonical | union(multisite_subdomains_wildcards) | join(' ') }};
+
+  {{ self.acme_challenge() -}}
+
+  {{ self.includes_d() -}}
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+{% endif %}
+{% endblock -%}
+
+{%- block redirects_domains %}
+{% if site_hosts_redirects | default([]) | count %}
+# Redirect some domains
+{% endif %}
+{% for host in site_hosts if host.redirects | default([]) %}
+server {
+  {% if ssl.enabled -%}
+  listen [::]:443 ssl http2;
+  listen 443 ssl http2;
+  {% endif -%}
+  listen [::]:80;
+  listen 80;
+  server_name {{ host.redirects | join(' ') }};
+
+  {{ self.https() -}}
+
+  {{ self.acme_challenge() -}}
+
+  {{ self.includes_d() -}}
+
+  location / {
+    return 301 {{ ssl.enabled | ternary('https', 'http') }}://{{ host.canonical }}$request_uri;
+  }
+}
+{% endfor %}
+{% endblock %}

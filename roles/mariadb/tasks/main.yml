@@ -68,4 +68,4 @@
       name: test
       state: absent
 
-  when: not sites_using_remote_db | count
+  when: sites_using_localhost_db | count

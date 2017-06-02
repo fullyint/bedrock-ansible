@@ -1,0 +1,40 @@
+Error: No targets found for specified env + projects + sites combination.
+Perhaps the specified sites are not part of projects that fit the specified
+project pattern, or perhaps just not for the `{{ env }}` environment{{
+(env == 'development' and localhost_is_vagrant) | ternary(
+  ' or for the `' + local_hostname | default('') + '` Vagrant machine', ''
+) }}.
+
+{% if env == 'development' %}
+{% if localhost_is_vagrant %}
+Ansible running on `{{ local_hostname | default('') }}` Vagrant machine
+(`projects` and `sites` are limited to those available on this machine)
+
+{% else %}
+{% if not vagrant_machines_selected | count %}
+No running Vagrant machines matched the `projects` and `sites` requested.
+Maybe you need to `vagrant up <project_name>`
+
+{% else %}
+{% if vagrant_machines | issubset(vagrant_machines_selected) %}
+Eligible Vagrant machines (created and running):
+{% else %}
+Vagrant machines selected via CLI options:
+{% endif %}
+  {{ vagrant_machines_selected | to_nice_yaml | indent(2) }}
+(`projects` and `sites` are limited to those available on the machines above)
+
+{% endif %}
+{% endif %}
+{% endif %}
+Environment: {{ env }}
+
+Projects pattern:
+  {{ projects }}
+
+Sites:
+{% if _sites | type_debug == 'unicode' %}
+  {{ _sites.split(',') | to_nice_yaml | indent(2) }}
+{% else  %}
+  {{ (_sites == {}) | ternary('(all sites)', _sites | to_nice_yaml) | indent(2) }}
+{% endif %}

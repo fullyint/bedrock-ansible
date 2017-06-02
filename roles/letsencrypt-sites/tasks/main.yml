@@ -1,0 +1,27 @@
+---
+- name: Assign dynamic hosts to their respective <parent_host>-letsencrypt-sites groups
+  group_by:
+    key: "{{ parent_host }}-letsencrypt-sites"
+
+- import_tasks: nginx.yml
+
+- import_tasks: certificates.yml
+
+- name: Install cronjob for key generation (only once per parent host)
+  cron:
+    cron_file: letsencrypt-certificate-renewal
+    name: letsencrypt certificate renewal
+    user: root
+    job: cd {{ acme_tiny_data_directory }} && ./renew-certs.py && /usr/sbin/service nginx reload
+    day: "{{ letsencrypt_cronjob_daysofmonth }}"
+    hour: 4
+    minute: 30
+    state: present
+  register: cert_renewal_cron
+  ignore_errors: true
+  when: designated_child_host_letsencrypt
+
+- name: If parent host fails to create cert renewal cron job, fail child hosts
+  fail:
+    msg: Failed creating cert renewal cron job for {{ parent_host }}
+  when: true in ansible_play_batch | map('extract', hostvars) | selectattr('parent_host', 'equalto', parent_host) | map(attribute='cert_renewal_cron') | map('failed') | list

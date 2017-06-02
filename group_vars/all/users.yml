@@ -1,22 +1,30 @@
 # Documentation: https://roots.io/trellis/docs/ssh-keys/
-admin_user: admin
-
-# Also define 'vault_users' (`group_vars/staging/vault.yml`, `group_vars/production/vault.yml`)
-users:
-  - name: "{{ web_user }}"
-    groups:
-      - "{{ web_group }}"
-    keys:
-      - "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
-      # - https://github.com/username.keys
+# Also define 'vault_users' in `<project path>/vars/<env>/vault.yml`
+users_default:
   - name: "{{ admin_user }}"
     groups:
       - sudo
-    keys:
-      - "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
-      # - https://github.com/username.keys
+    keys: "{{ admin_user_keys }}"
+  - name: "{{ web_user }}"
+    groups:
+      - "{{ web_group }}"
+    keys: "{{ web_user_keys }}"
+
+admin_user: admin
+
+admin_user_keys_to_union:
+  - all:
+    - "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+    # - https://github.com/username.keys
 
 web_user: web
+
+web_user_keys_to_union:
+  - all:
+    - "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+    # - https://github.com/username.keys
+
 web_group: www-data
+
 web_sudoers:
   - "/usr/sbin/service php7.1-fpm *"

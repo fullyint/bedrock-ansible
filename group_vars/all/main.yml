@@ -1,3 +1,14 @@
+# Temporary for testing
+letsencrypt_ca: "https://acme-staging.api.letsencrypt.org"
+
+playbook_confirmations:
+  env: true             # true, <environment>, false
+  projects: true        # true, false
+  hosts: false          # true, false
+  sites: true           # true, false
+  interactive: true     # true, false, env list (e.g., ['production', 'staging'] ), forced false when running via Vagrant
+
+project_path: "projects/{{ project | default('') }}"  # default path to projects, relative to Trellis root
 composer_keep_updated: true
 composer_global_packages:
  - { name: hirak/prestissimo }
@@ -8,7 +19,7 @@ apt_dev_package_state: latest
 ntp_timezone: Etc/UTC
 ntp_manage_config: true
 www_root: /srv/www
-ip_whitelist:
+ip_whitelist_default:
   - "{{ (env == 'development') | ternary(ansible_default_ipv4.gateway, ipify_public_ip | default('')) }}"
 
 # Values of raw_vars will be wrapped in `{% raw %}` to avoid templating problems if values include `{%` and `{{`.
@@ -20,4 +31,6 @@ raw_vars:
   - vault_mysql_root_password
   - vault_users.*.password
   - vault_users.*.salt
-  - vault_wordpress_sites
+  - vault_site_vars_global
+  - vault_site_vars_for_project
+  - vault_site_vars

@@ -1,16 +1,13 @@
 ---
-- import_playbook: variable-check.yml
-  vars:
-    playbook: server.yml
-
 - name: Test Connection and Determine Remote User
-  hosts: web:&{{ env }}
+  hosts: "{{ projects }},&web,&{{ env }}"
   gather_facts: false
   roles:
     - { role: connection, tags: [connection, always] }
+    - { role: dynamic-hosts, tags: [dynamic-hosts, always] }
 
 - name: Install prerequisites
-  hosts: web:&{{ env }}
+  hosts: "!dynamic_hosts,{{ projects }},&web,&{{ env }}"
   gather_facts: false
   become: yes
   tasks:
@@ -20,7 +17,7 @@
       changed_when: not python_check.stdout | search('/usr/bin/python')
 
 - name: WordPress Server - Install LEMP Stack with PHP 7.1 and MariaDB MySQL
-  hosts: web:&{{ env }}
+  hosts: "!dynamic_hosts,{{ projects }},&web,&{{ env }}"
   become: yes
   roles:
     - { role: common, tags: [common] }
@@ -38,5 +35,17 @@
     - { role: logrotate, tags: [logrotate] }
     - { role: composer, tags: [composer] }
     - { role: wp-cli, tags: [wp-cli] }
-    - { role: letsencrypt, tags: [letsencrypt], when: sites_using_letsencrypt | count }
-    - { role: wordpress-setup, tags: [wordpress, wordpress-setup, letsencrypt] }
+    - { role: letsencrypt-general, tags: [letsencrypt, letsencrypt-general], when: sites_using_letsencrypt | count }
+    - { role: wp-general, tags: [wp, wp-general, letsencrypt] }
+
+- name: WordPress Server - Site-specific setup
+  hosts: dynamic_hosts
+  gather_facts: false
+  become: yes
+  roles:
+    - { role: letsencrypt-sites, tags: [letsencrypt, letsencrypt-sites], when: ssl.enabled and ssl.provider == 'letsencrypt' }
+    - { role: wp-sites, tags: [wp, wp-sites, letsencrypt] }
+  handlers:
+    - name: reload nginx
+      import_tasks: roles/wp-sites/tasks/reload_nginx.yml
+      listen: "reload nginx"

@@ -1,0 +1,80 @@
+site_vars_global:
+  - all:
+      site_hosts:
+        - canonical: "{{ site }}.com"
+          redirects:
+            - www.{{ site }}.com
+      local_path: ../sites/{{ site }} # path targeting local Bedrock site directory (relative to Ansible root)
+      current_path: current
+      db_create: true
+      packagist_token: "{{ vault_packagist_token }}"
+      repo: git@github.com:roots/bedrock.git # replace with your Git repo URL
+      # repo: git@github.com:example/{{ site }}.git # replace with your Git repo URL
+      # repo_subtree_path: site # relative path to your Bedrock/WP directory in your repo
+      repo_accept_hostkey: true
+      branch: master
+      multisite:
+        enabled: false
+        subdomains: false
+        base_path: /
+        cron: true
+      ssl:
+        enabled: false
+        provider: letsencrypt
+        hsts_max_age: 0  # change to 31536000 for a project or site when you're ready to stick with always SSL
+        hsts_include_subdomains: false # consider whether you could set this to true for each project or site
+        hsts_preload: false # change to true for a project or site when you're absolutely ready to stick with always SSL
+        cert: ~/ssl/{{ site }}.crt
+        key: ~/ssl/{{ site }}.key
+        stapling: true
+        # client_cert_url: https://support.cloudflare.com/hc/en-us/article_attachments/201243967/origin-pull-ca.pem
+      h5bp: # each feature enabled? true or false
+        cache_file_descriptors: "{{ env != 'development' }}"
+        extra_security: true
+        no_transform: false
+        x_ua_compatible: true
+        cache_busting: false
+        cross_domain_fonts: true
+        expires: false
+        protect_system_files: true
+      cache:
+        enabled: false
+        duration: 30s
+        skip_cache_uri: /wp-admin/|/xmlrpc.php|wp-.*.php|/feed/|index.php|sitemap(_index)?.xml
+        skip_cache_cookie: comment_author|wordpress_[a-f0-9]+|wp-postpass|wordpress_no_cache|wordpress_logged_in
+      site_env:
+        disable_wp_cron: true
+        wp_home: "{{ (ssl | default({})).enabled | default(false) | ternary('https', 'http') }}://{{ site_hosts_canonical | first }}"
+        wp_siteurl: "{{ (ssl | default({})).enabled | default(false) | ternary('https', 'http') }}://{{ site_hosts_canonical | first }}/wp"
+        wp_env: "{{ env | default('development') }}"
+        domain_current_site: "{{ site_hosts_canonical | first }}"
+        db_name: "{{ site | underscore }}_{{ env | default('development') }}"
+        db_user: "{{ site | underscore }}"
+        db_password: "{{ vault_db_password }}"
+        db_host: localhost
+        db_user_host: localhost
+        auth_key: "{{ vault_auth_key }}"
+        secure_auth_key: "{{ vault_secure_auth_key }}"
+        logged_in_key: "{{ vault_logged_in_key }}"
+        nonce_key: "{{ vault_nonce_key }}"
+        auth_salt: "{{ vault_auth_salt }}"
+        secure_auth_salt: "{{ vault_secure_auth_salt }}"
+        logged_in_salt: "{{ vault_logged_in_salt }}"
+        nonce_salt: "{{ vault_nonce_salt }}"
+  - staging:
+      site_hosts:
+        - canonical: staging.{{ site }}.com
+      branch: staging
+  - development:
+      site_hosts:
+        - canonical: "{{ site }}.test"
+          redirects:
+            - www.{{ site }}.test
+      site_install: true
+      wp_admin_user: admin
+      wp_admin_password: "{{ vault_wp_admin_password | default('admin') }}"
+      wp_admin_email: admin@{{ site_hosts_canonical | first }}
+      site_title: "{{ site }}"
+      initial_permalink_structure: /%postname%/
+      ssl:
+        provider: self-signed

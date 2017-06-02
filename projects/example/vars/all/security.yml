@@ -1,0 +1,9 @@
+# These rules will be added to rules in `ferm_input_list_default`
+ferm_input_list_for_project: []
+
+# Documentation: https://roots.io/trellis/docs/security/
+# If these vars are defined/uncommented, they will override corresponding values in `group_vars/all/security.yml`
+# If sshd_permit_root_login: false, admin_user must be in 'users' (`group_vars/all/users.yml`) with sudo group
+# and in 'vault_users' (`group_vars/staging/vault.yml`, `group_vars/production/vault.yml`)
+# sshd_permit_root_login: true
+# sshd_password_authentication: false

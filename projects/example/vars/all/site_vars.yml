@@ -1,0 +1,19 @@
+# Documentation: https://roots.io/trellis/docs/remote-server-setup/
+# `wordpress_sites` options: https://roots.io/trellis/docs/wordpress-sites
+# Define accompanying passwords/secrets in group_vars/<environment>/vault.yml
+
+# site_vars_for_project:
+#   - all: {}
+#   - production: {}
+#   - staging: {}
+#   - development: {}
+site_vars_for_project: []
+
+# site_vars:
+#   site1:
+#     - all: {}
+#     - staging: {}
+#     - production: {}
+#     - development: {}
+site_vars:
+  site1: []

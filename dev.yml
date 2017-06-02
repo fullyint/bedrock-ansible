@@ -1,9 +1,15 @@
 ---
+- name: Load Ansible SSH configuration
+  hosts: "{{ projects }},&web,&development"
+  gather_facts: false
+  roles:
+    - { role: connection-dev, tags: [connection-dev, always] }
+    - { role: dynamic-hosts, tags: [dynamic-hosts, always] }
+
 - name: "WordPress Server: Install LEMP Stack with PHP 7.1 and MariaDB MySQL"
-  hosts: web:&development
+  hosts: vagrant_base_hosts
   become: yes
   remote_user: vagrant
-
   roles:
     - { role: common, tags: [common] }
     - { role: fail2ban, tags: [fail2ban] }
@@ -19,5 +25,17 @@
     - { role: logrotate, tags: [logrotate] }
     - { role: composer, tags: [composer] }
     - { role: wp-cli, tags: [wp-cli] }
-    - { role: wordpress-setup, tags: [wordpress, wordpress-setup] }
-    - { role: wordpress-install, tags: [wordpress, wordpress-install] }
+    - { role: wp-general, tags: [wp, wp-general] }
+
+- name: WordPress Server - Site-specific setup
+  hosts: dynamic_hosts
+  gather_facts: false
+  become: yes
+  remote_user: vagrant
+  roles:
+    - { role: wp-sites, tags: [wp, wp-sites] }
+    - { role: wp-install, tags: [wp, wp-install] }
+  handlers:
+    - name: reload nginx
+      import_tasks: roles/wp-sites/tasks/reload_nginx.yml
+      listen: "reload nginx"

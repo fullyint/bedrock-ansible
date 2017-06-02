@@ -1,9 +1,3 @@
-# If you use the "git" strategy:
-# - you must set a repository (no default)
-project_git_repo: "{{ project.repo }}"
-# - you can set the git ref to deploy (can be a branch, tag or commit hash)
-project_version: "{{ project.branch | default('master') }}"
-
 # The source_path is used to fetch the tags from git, or synchronise via rsync. This way
 # you do not have to download/sync the entire project on every deploy
 project_source_path: "{{ project_root }}/shared/source"
@@ -43,15 +37,14 @@ project_environment:
 
 # The project_current_path is the symlink used for the latest or active deployment
 # - default is 'current'
-project_current_path: "{{ project.current_path | default('current') }}"
+project_current_path: "{{ current_path | default('current') }}"
 
 # Whether to run `wp core update-db` at end of each deploy
 update_db_on_deploy: true
 
 # Helpers
-project: "{{ wordpress_sites[site] }}"
 project_root: "{{ www_root }}/{{ site }}"
-project_local_path: "{{ (lookup('env', 'USER') == 'vagrant') | ternary(project_root + '/' + project_current_path, project.local_path) }}"
+project_local_path: "{{ (lookup('env', 'USER') == 'vagrant') | ternary(project_root + '/' + project_current_path, local_path) }}"
 
 
 # Deploy hooks

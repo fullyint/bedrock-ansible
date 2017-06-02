@@ -1,0 +1,54 @@
+---
+- name: Generate private keys
+  shell: openssl genrsa 4096 > {{ letsencrypt_keys_dir }}/{{ site }}.key
+  args:
+    creates: "{{ letsencrypt_keys_dir }}/{{ site }}.key"
+
+- name: Ensure correct permissions on private keys
+  file:
+    path: "{{ letsencrypt_keys_dir }}/{{ site }}.key"
+    mode: 0600
+
+- name: Generate Lets Encrypt certificate IDs
+  shell: |
+    echo "{{ [site_hosts_all | join(' '), letsencrypt_ca, acme_tiny_commit, letsencrypt_intermediate_cert_sha256sum] | join('\n') }}" |
+    cat {{ letsencrypt_account_key }} {{ letsencrypt_keys_dir }}/{{ site }}.key - |
+    md5sum | cut -c -7
+  register: generate_cert_id
+  changed_when: false
+  tags: [wp, wp-sites, wordpress, wordpress-setup, nginx-includes]
+
+- name: Generate CSRs
+  shell: "openssl req -new -sha256 -key '{{ letsencrypt_keys_dir }}/{{ site }}.key' -subj '/' -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf '[SAN]\nsubjectAltName=DNS:{{ site_hosts_all | join(',DNS:') }}')) > {{ acme_tiny_data_directory }}/csrs/{{ site }}-{{ generate_cert_id.stdout }}.csr"
+  args:
+    executable: /bin/bash
+    creates: "{{ acme_tiny_data_directory }}/csrs/{{ site }}-{{ generate_cert_id.stdout }}.csr"
+
+- name: Generate certificate renewal script (only once per parent host)
+  template:
+    src: renew-certs.py
+    dest: "{{ acme_tiny_data_directory }}/renew-certs.py"
+    mode: 0700
+  register: generate_renew_certs_py
+  ignore_errors: true
+  when: designated_child_host_letsencrypt
+
+- name: If parent host fails to generate certificate renewal script, fail children hosts
+  fail:
+    msg: Failed generating certificate renewal script for {{ parent_host }}
+  when: true in ansible_play_batch | map('extract', hostvars) | selectattr('parent_host', 'equalto', parent_host) | map(attribute='generate_renew_certs_py') | map('failed') | list
+
+- name: Generate the certificates (only once per parent host)
+  command: ./renew-certs.py
+  args:
+    chdir: "{{ acme_tiny_data_directory }}"
+  register: generate_certs
+  changed_when: generate_certs.stdout is defined and 'Created' in generate_certs.stdout
+  ignore_errors: true
+  when: designated_child_host_letsencrypt
+  notify: reload nginx
+
+- name: If parent host fails to generate certificates, fail children hosts
+  fail:
+    msg: Failed generating certificates for {{ parent_host }}
+  when: true in ansible_play_batch | map('extract', hostvars) | selectattr('parent_host', 'equalto', parent_host) | map(attribute='generate_certs') | map('failed') | list

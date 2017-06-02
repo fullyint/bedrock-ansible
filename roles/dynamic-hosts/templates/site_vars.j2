@@ -1,0 +1,10 @@
+Invalid WordPress sites configuration: site names in `site_vars` must have matching entry in `vault_site_vars`.
+
+Sites without a matching vault entry:
+{% for name in site_vars.keys() | difference(vault_site_vars.keys()) %}
+* `{{ name }}`
+{% endfor %}
+
+Update `vault_site_vars` in `{{ project_path }}/vars/{{ env }}/vault.yml` to continue.
+
+Docs: https://roots.io/trellis/docs/wordpress-sites/#passwordssecrets

@@ -1,0 +1,51 @@
+_sites: "{{ (site != 'unavailable') | ternary(site, sites | default({})) }}"
+
+_dynamic_hosts: |
+  [
+    {% for host in ansible_play_batch if env != 'development' or not localhost_is_vagrant or local_hostname in hostvars[host].group_names %}
+      {% for site in (hostvars[host].site_vars | default({})).keys() if
+        ((_sites | type_debug) == 'dict' and (hostvars[host].project not in _sites or site in _sites[hostvars[host].project])) or
+        ((_sites | type_debug) == 'list' and site in _sites) or
+        ((_sites | type_debug) == 'unicode' and site in _sites.split(',')) or
+        _sites in ['', 'all', '*']
+      %}
+        {
+          'groups':{{ hostvars[host].group_names }},
+          'project':'{{ hostvars[host].project }}',
+          'parent_project':'{{ hostvars[host].project }}',
+          'site':'{{ site }}',
+          'parent_host':'{{ host }}',
+          'ansible_host':'{{ hostvars[host].ansible_host | default('') }}',
+          'ansible_user':'{{ hostvars[host].ansible_user | default(web_user) }}',
+          'ansible_ssh_extra_args':'{{ hostvars[host].ansible_ssh_extra_args | default('') }}',
+          'ansible_become_pass':'{{ hostvars[host].ansible_become_pass | default('') }}',
+        },
+      {% endfor %}
+    {% endfor %}
+  ]
+
+dynamic_hosts_for_projects: |
+  {% if env == 'development' %}
+    {%- if not localhost_is_vagrant -%}
+      [{% for host in _dynamic_hosts if host.project in vagrant_machines_selected %}{{ host }},{% endfor %}]
+    {%- else -%}
+      [{% for host in _dynamic_hosts if host.parent_host in lookup('inventory_hostnames', 'vagrant_base_hosts', wantlist=true) %}{{ host }},{% endfor %}]
+    {% endif %}
+  {%- else -%}
+    {{ _dynamic_hosts }}
+  {%- endif %}
+
+dynamic_hosts_for_groups: |
+  [
+    {% for host in multi_project_vms | default({}) if env == 'development' %}
+      {% for d_host in _dynamic_hosts if host.name in d_host.groups %}
+        {{ host | combine({
+          'parent_host':host.name + '_development',
+          'site':d_host.site,
+          'ansible_become_pass':d_host.ansible_become_pass,
+          'parent_project':d_host.project
+          })
+        }},
+      {% endfor %}
+    {% endfor %}
+  ]

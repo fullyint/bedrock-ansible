@@ -1,0 +1,21 @@
+# These users are in addition to `users_default` in `group_vars/all/users.yml`.
+# You probably only want to add keys instead, to `admin_user_keys_for_project` and `web_user_keys_for_project`
+# A user added here will completely override a `users_default` user who has the same `name`
+# users_for_project:
+#   - name: someuser
+#     groups:
+#       - "{{ web_group }}"
+#       - other_group
+#     keys:
+#       - https://github.com/someuser.keys
+users_for_project: []
+
+# These keys are in addition to `admin_user_keys_to_union` in `group_vars/all/users.yml`.
+# admin_user_keys_for_project:
+#   - https://github.com/someuser.keys
+admin_user_keys_for_project: []
+
+# These keys are in addition to `web_user_keys_to_union` in `group_vars/all/users.yml`.
+# web_user_keys_for_project:
+#   - https://github.com/someuser.keys
+web_user_keys_for_project: []

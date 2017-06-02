@@ -1,0 +1,7 @@
+---
+- name: Download client cert
+  get_url:
+    url: "{{ ssl.client_cert_url }}"
+    dest: "{{ nginx_ssl_path }}/client-{{ (ssl.client_cert_url | hash('md5'))[:7] }}.crt"
+    mode: 0640
+  when: ssl.enabled and ssl.client_cert_url is defined

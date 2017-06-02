@@ -1,0 +1,23 @@
+# Documentation: https://roots.io/trellis/docs/vault/
+vault_mysql_root_password: stagingpw
+
+# Documentation: https://roots.io/trellis/docs/security/
+vault_users:
+  - name: "{{ admin_user }}"
+    password: example_password
+    salt: "generateme"
+
+# Variables to accompany `group_vars/production/wordpress_sites.yml`
+# Note: the site name (`example.com`) must match up with the site name in the above file.
+vault_site_vars:
+  site1:
+    vault_db_password: example_dbpassword
+    # Generate your keys here: https://roots.io/salts.html
+    vault_auth_key: "generateme"
+    vault_secure_auth_key: "generateme"
+    vault_logged_in_key: "generateme"
+    vault_nonce_key: "generateme"
+    vault_auth_salt: "generateme"
+    vault_secure_auth_salt: "generateme"
+    vault_logged_in_salt: "generateme"
+    vault_nonce_salt: "generateme"

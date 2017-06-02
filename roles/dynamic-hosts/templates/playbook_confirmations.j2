@@ -1,0 +1,73 @@
+{% set c = playbook_confirmations %}
+
+{%- macro confirmations(hosts_list, attribute) %}
+{% if attribute == 'parent_project' %}
+base_project: {{ hosts_list[0].base_project }}
+{% endif %}
+{% if c.projects %}
+projects:
+{% for p in hosts_list | map(attribute=attribute) | list | unique | sort %}
+  - {{ p }}{% if c.hosts or c.sites %}:{% endif %}
+
+{% if c.hosts %}
+      hosts:
+{% for h in hosts_list | selectattr(attribute, 'equalto', p) | map(attribute='parent_host') | list | unique | sort %}
+        - {{ h }}
+{% endfor %}
+{% endif %}
+{% if c.sites %}
+      sites:
+{% for s in hosts_list | selectattr(attribute, 'equalto', p) | map(attribute='site') | list | unique | sort %}
+        - {{ s }}
+{% endfor %}
+{% endif %}
+{% if attribute == 'project' and (c.hosts or c.sites) %}
+
+{% endif %}
+{% endfor %}
+{% else %}
+{% if c.hosts %}
+{% if c.env or env == c.env or c.projects %}
+
+{% endif %}
+hosts:
+{% for h in hosts_list | map(attribute='parent_host') | list | unique | sort %}
+  - {{ h }}
+{% endfor %}
+{% endif %}
+{% if c.sites %}
+{% if c.env or env == c.env or c.projects or c.hosts %}
+
+{% endif %}
+sites:
+{% for s in hosts_list | map(attribute='site') | list | unique | sort %}
+  - {{ s }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endmacro %}
+
+{%- if c.env == true or env == c.env %}
+environment: {{ env }}
+
+{% endif %}
+{% set single_project_hosts = dynamic_hosts | rejectattr('name', 'defined') | list %}
+{% if single_project_hosts | count %}
+{{ confirmations(single_project_hosts, 'project') }}
+{% endif %}
+{% set multi_project_hosts = dynamic_hosts | selectattr('name', 'defined') | map(attribute='name') | list | unique %}
+{% if multi_project_hosts | count %}
+multi-project Vagrant machines:
+{% for group in multi_project_hosts %}
+  - {{ group }}:
+      {{ confirmations(dynamic_hosts | selectattr('name', 'defined') | selectattr('name', 'equalto', group) | list, 'parent_project')  | indent(6) }}
+
+{% endfor %}
+{% set vagrant_machines_rejected = vagrant_machine_statuses | default([]) | rejectattr('status', 'search', 'running') | list %}
+{% if vagrant_machines_rejected | count %}
+The following Vagrant machines were not available:
+{% for machine in vagrant_machines_rejected %}
+  - {{ machine.name }}: {{ machine.status }}
+{% endfor %}
+{% endif %}
+{% endif %}

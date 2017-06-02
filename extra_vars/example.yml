@@ -1,0 +1,77 @@
+# This file is for convenience in loading variables via the --extra-vars CLI option, if desired.
+
+# Usage
+# --------------------------------------------
+# Example:
+#   ansible-playbook server.yml -e @extra_vars/example.yml
+#
+# If you want to use this file by default, you could add the following to your ansible.cfg:
+#   [trellis]
+#   trellis_extra_vars = @extra_vars/example.yml
+#
+# Alternatively, you may create an env var:
+#   $ export TRELLIS_EXTRA_VARS="@extra_vars/example.yml"
+#
+# You may find it helpful to keep variations on this file.
+# These variations could represent the "profiles" you commonly target.
+#
+#   # Deploy to projects/sites in "batch1"
+#   $ ansible-playbook deploy.yml `-e @extra_vars/batch1.yml`
+
+
+# Environment -- required
+# --------------------------------------------
+# Don't set this default `env` to `production`. When targeting production,
+# it is safer to have to manually type `-e env=production` to ensure
+# you are being deliberate and don't target production merely by accident.
+# Place CLI override of `env` after the file extra-var:
+#
+#   ansible-playbook server.yml -e @extra_vars/example.yml -e env=production
+#
+# Alternatively, you may create an env var:
+#   $ export TRELLIS_ENV="staging"
+env: staging
+
+
+# Projects -- optional (default: all projects)
+# --------------------------------------------
+# `projects` should be an ansible pattern (indicates hosts or groups)
+# see http://docs.ansible.com/ansible/intro_patterns.html
+#
+# Alternatively, you may create an env var:
+#   $ export TRELLIS_PROJECTS="example,project2"
+projects: all
+
+
+# Sites -- optional (default: all sites)
+# --------------------------------------------
+# Use the `sites` variable to indicate which subset of sites to target per project
+# (e.g., for creating sites' web roots, creating database, deploying, etc.).
+#
+# Alternatively, you may create an env var:
+#   $ export TRELLIS_SITES="example.com,project2.com"
+#
+# You may define `sites` as a dictionary.
+#   - Use project names as keys and related sites as list values beneath each project key.
+#   - If a project name is omitted, all sites for the project will be targeted,
+#     assuming the project will be included according to `projects` above.
+# sites:
+#   example:
+#     - example2.com
+#     - example.com
+#   project2:
+#     - project.com
+#     - project2.com
+sites: {}
+
+# You may define `sites` as a list.
+#   - List site names only (no project names as keys).
+#   - Only sites listed will be targeted,
+#     and only if their project will be included according to `projects` above.
+#   - If there are site names duplicated across projects, be careful to indicate
+#     your intended `projects` above. Consider using the dictionary format for `sites`
+#     instead, which allows specificity of sites per project.
+# sites:
+#   - example.com
+#   - othersite.com
+#   - another.org

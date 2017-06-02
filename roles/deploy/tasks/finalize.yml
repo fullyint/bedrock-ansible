@@ -20,4 +20,4 @@
   tags: deploy-finalize-after
 
 - debug:
-    msg: "{{ project_version }}@{{ git_clone.after | truncate(7, True, '') }} deployed as release {{ deploy_helper.new_release }}"
+    msg: "{{ branch }}@{{ git_clone.after | truncate(7, True, '') }} deployed as release {{ deploy_helper.new_release }}"

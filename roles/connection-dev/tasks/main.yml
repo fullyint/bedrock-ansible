@@ -1,0 +1,93 @@
+---
+# These lookups would otherwise run each of the multiple times they are used
+- name: Lookup local user, local hostname, and inventory hosts
+  set_fact:
+    localhost_is_vagrant: "{{ lookup('env', 'USER') == 'vagrant' }}"
+    local_hostname: "{{ lookup('pipe', 'hostname' ) }}"
+    _projects: "{{ (lookup('file', 'hosts/hosts.yml') | from_yaml).projects.keys() }}"
+    _groups: "{{ lookup('pipe', 'hosts/hosts.py --list') | from_json }}"
+  run_once: true
+
+- block:
+  - name: Retrieve status of candidate Vagrant machines
+    set_fact:
+      vagrant_machine_statuses: "[ {% for machine in lookup('pipe', 'vagrant status ' + _vagrant_machines | join(' ')).splitlines() | select('match', '^(' + _vagrant_machines | join('|') + ') .+\\(.+\\)') | list %}
+          {
+            'name':'{{ machine.split()[0] }}',
+            'status':'{{ machine | regex_replace('^[^\\s]+\\s+(.*)','\\1') }}'
+          },
+        {% endfor %} ]"
+    run_once: true
+    when: _vagrant_machines | count
+    vars:
+      _vagrant_machines: "{{ vagrant_machines if vagrant_machines | type_debug == 'list' else vagrant_machines.split(',') }}"
+
+  - name: Retrieve path to private SSH key per Vagrant machine
+    set_fact:
+      vagrant_private_key_files: "{ {% for machine in vagrant_machines_selected %}
+        '{{ machine }}': {{ ((_groups[machine].vars | default({})).vagrant_private_key_file | default()).splitlines() or
+                            lookup('pipe', 'find ' + playbook_dir + '/.vagrant/machines/' +
+                              machine + ' -type f -name private_key').splitlines() or
+                            [(lookup('pipe', 'vagrant ssh-config ' + machine | default('')).splitlines() |
+                              select('search', 'IdentityFile') | list)[0].strip()[13:]]
+                          }}, {% endfor %} }"
+    run_once: true
+
+  - name: Set extra SSH args
+    set_fact:
+      original_ssh_extra_args: "{{ ansible_ssh_extra_args | default('') }}"
+      ansible_ssh_extra_args: "{{ vagrant_ssh_extra_args }}
+        {{ '-i ' + vagrant_private_key_files[project] | join(' -i ') if project in vagrant_machines_selected else '' }}
+        {{ ansible_ssh_extra_args | default('') }}"
+
+  when: not localhost_is_vagrant
+
+- name: Set VM base hosts - single-project machines
+  group_by:
+    key: vagrant_base_hosts
+  register: vagrant_base_hosts
+  when:
+    - env == 'development'
+    - project in vagrant_machines_selected or (localhost_is_vagrant and project == local_hostname)
+    - inventory_hostname == groups[project] | default(['']) | intersect(ansible_play_batch) | first
+
+- name: Ensure base project is in multi-project VM's groups
+  fail:
+    msg: |
+      {% if not eligible_projects | count %}
+      No eligible projects for `{{ item.name }}` group.
+      {% else %}
+      The group entry for `{{ item.name }}` in `hosts/hosts.yml`
+      specifies `base_project: {{ item.project }}` but this
+      project is not included among the projects in this group.
+
+      Change the `base_project` to an eligible project or remove the
+      `base_project` definition and a project will be chosen automatically.
+
+      Eligible projects for the `{{ item.name }}` group appear to be:
+        {{ eligible_projects }}
+      {% endif %}
+  vars:
+    eligible_projects: "{{ _groups[item.name].children | default([]) | intersect(_projects) | to_nice_yaml | indent(2) }}"
+  with_items: "{{ multi_project_vms }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: env == 'development' and item.project not in _groups[item.name].children | default([])
+  run_once: true
+
+- name: Create VM base hosts - multi-project machines
+  add_host:
+    name: "{{ item.name }}_development"
+    groups: "{{ item.groups }}"
+    project: "{{ item.project }}"
+    child_projects: "{{ dynamic_hosts_for_groups | selectattr('name', 'equalto', item.name) | map(attribute='parent_project') | list | unique }}"
+    ansible_host: "{{ item.ansible_host }}"
+    ansible_user: "{{ item.ansible_user }}"
+    ansible_ssh_extra_args: "{{ item.ansible_ssh_extra_args }}"
+    ansible_connection: "{{ ansible_connection }}"
+    site: unavailable
+  with_items: "{{ multi_project_vms }}"
+  changed_when: false
+  loop_control:
+    label: "{{ item.name }}"
+  when: env == 'development'

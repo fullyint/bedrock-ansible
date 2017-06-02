@@ -1,0 +1,65 @@
+---
+- name: Get list of hosts in current Nginx conf
+  shell: |
+    [ ! -f {{ nginx_path }}/sites-enabled/{{ site }}.conf ] ||
+    sed -n -e "/listen 80/,/server_name/{s/server_name \(.*\);/\1/p}" {{ nginx_path }}/sites-enabled/{{ site }}.conf
+  register: current_hosts
+  changed_when: false
+
+- name: Create needed Nginx confs for challenges
+  template:
+    src: nginx-challenge-site.conf.j2
+    dest: "{{ nginx_path }}/sites-available/letsencrypt-{{ site }}.conf"
+  register: challenge_site_confs
+  when: missing_hosts | count
+
+- name: Enable Nginx sites
+  file:
+    src: "{{ nginx_path }}/sites-available/letsencrypt-{{ site }}.conf"
+    dest: "{{ nginx_path }}/sites-enabled/letsencrypt-{{ site }}.conf"
+    state: link
+  register: challenge_sites_enabled
+  when: missing_hosts | count
+  notify: disable temporary challenge sites
+
+- name: Assign dynamic hosts to their respective <parent_host>-reload-for-challenges groups
+  group_by:
+    key: "{{ parent_host}}-reload-for-challenges"
+  when: missing_hosts | count
+
+- name: Test Nginx config prior to reload (only once per parent host)
+  command: nginx -t
+  register: test_nginx_config_for_challenges
+  ignore_errors: true
+  when:
+    - groups[parent_host + '-reload-for-challenges'] | default([]) | count
+    - inventory_hostname == groups[parent_host + '-reload-for-challenges'] | default(['']) | intersect(ansible_play_batch) | first
+
+- name: Reload Nginx for challenge sites (only once per parent host)
+  service:
+    name: nginx
+    state: reloaded
+  register: reload_nginx_config_for_challenges
+  ignore_errors: true
+  when: test_nginx_config_for_challenges | changed and not test_nginx_config_for_challenges | failed
+
+- name: If parent host fails Nginx config check or reload, fail child hosts
+  fail:
+    msg: Nginx config check or reload failed for {{ parent_host }}
+  when: true in ansible_play_batch | map('extract', hostvars) | selectattr('parent_host', 'equalto', parent_host) | map(attribute='test_nginx_config_for_challenges') | map('failed') | list or true in ansible_play_batch | map('extract', hostvars) | selectattr('parent_host', 'equalto', parent_host) | map(attribute='reload_nginx_config_for_challenges') | map('failed') | list
+
+- name: Test Acme Challenges
+  test_challenges:
+    hosts: "{{ site_hosts_all }}"
+  register: letsencrypt_test_challenges
+  ignore_errors: true
+
+- name: Notify of challenge failures
+  fail:
+    msg: >
+      Could not access the challenge file for the hosts/domains: {{ letsencrypt_test_challenges.failed_hosts | join(', ') }}.
+      Let's Encrypt requires every domain/host be publicly accessible.
+      Make sure that a valid DNS record exists for {{ letsencrypt_test_challenges.failed_hosts | join(', ') }} and that they point to this server's IP.
+      If you don't want these domains in your SSL certificate, then remove them from `site_hosts`.
+      See https://roots.io/trellis/docs/ssl for more details.
+  when: not letsencrypt_test_challenges | skipped and letsencrypt_test_challenges | failed

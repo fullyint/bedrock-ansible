@@ -37,12 +37,35 @@ def fail_with_message(msg)
   fail Vagrant::Errors::VagrantError.new, msg
 end
 
+def validate_ips(machines, machines_selected)
+  if ['up', 'hostmanager'].include?(ARGV[0])
+    msg = "WARNING: Edit `hosts/hosts.yml` to create unique IPs for development machines."
+    msg << "\nIf you edit the IP for a machine that is already running,"
+    msg << "\nrun `vagrant hostmanager <machine_name>` afterward to update your hosts file."
+    msg << "\n\nThe following IPs are assigned to more than one machine:"
+
+    # fail if duplicate IPs among selected machines
+    ips = machines.map { |machine,data| data['ip'] if machines_selected.include?(machine) }.compact
+    if ips.size != ips.uniq.size
+      dups = ips.group_by{ |e| e }.select { |k, v| v.size > 1 }.map(&:first)
+      fail_with_message "#{msg}\n#{YAML.dump(dups)}"
+    end
+
+    # warn if duplicate IPs
+    ips = machines.values.map { |v| v['ip'] }
+    if ips.size != ips.uniq.size
+      dups = ips.group_by{ |e| e }.select { |k, v| v.size > 1 }.map(&:first)
+      warn "\e[33m#{msg}\n#{YAML.dump(dups)}\e[0m"
+    end
+  end
+end
+
 def local_provisioning?
   @local_provisioning ||= Vagrant::Util::Platform.windows? || !which('ansible-playbook') || ENV['FORCE_ANSIBLE_LOCAL']
 end
 
-def local_site_path(site)
-  File.expand_path(site['local_path'], ANSIBLE_PATH)
+def local_site_path(paths)
+  File.expand_path(paths['local'], ANSIBLE_PATH)
 end
 
 def nfs_path(path)
@@ -60,8 +83,8 @@ def post_up_message
   msg
 end
 
-def remote_site_path(site_name, site)
-  "/srv/www/#{site_name}/#{site['current_path'] || 'current'}"
+def remote_site_path(site_name, paths)
+  "/srv/www/#{site_name}/#{paths['current'] || 'current'}"
 end
 
 def which(cmd)

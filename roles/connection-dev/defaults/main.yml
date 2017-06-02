@@ -1,0 +1,32 @@
+vagrant_machines: "{{ _dynamic_hosts | map(attribute='project') | list | unique }}"
+
+vagrant_machines_selected: "{{ vagrant_machine_statuses | default([]) | selectattr('status', 'search', 'running') |
+  map(attribute='name') | list }}"
+
+multi_project_vms: |
+  [
+    {% for group,data in _groups.iteritems() if (group in vagrant_machines_selected or group == local_hostname) and (data.web | default({})).development is defined %}
+      {% set _base_project = (_projects | intersect(data.children | default([])) | sort + ['']) | first %}
+      {% set base_project = (data.web.development | type_debug == 'list') | ternary(data.web.development[0].base_project | default(_base_project), _base_project) %}
+      {% macro parents(grp) %}{% for k,v in _groups.iteritems() if grp in v.children | default([]) %},'{{ k }}'{{ parents(k) }}{% endfor %}{% endmacro %}
+      {
+        'name':'{{ group }}',
+        'groups':['{{ base_project }}','vagrant_base_hosts','web','development'{{ parents(base_project) }}],
+        'base_project':'{{ base_project }}',
+        'project':'{{ base_project }}',
+        'ansible_host':'{{ (data.web.development | type_debug != "list") | ternary(
+                              data.web.development, (data.web.development[0] | type_debug == "dict") | ternary(
+                                data.web.development[0].ansible_host | default("host_unknown"), data.web.development[0]
+                              )
+                            )
+                        }}',
+        'ansible_user':'vagrant',
+        'ansible_ssh_extra_args':'{{ vagrant_ssh_extra_args }}{{ ' -i ' + vagrant_private_key_files[group] | join(' -i ') if group in vagrant_machines_selected else '' }} {{ original_ssh_extra_args | default('') }}',
+      },
+    {% endfor %}
+  ]
+
+# Couldn't find a way to disable Vagrant's export of ANSIBLE_SSH_ARGS
+# Avoid duplicating options when using Vagrant's provisioner
+vagrant_ssh_extra_args: "{{ vagrant_provisioner | default(false) |
+  ternary('', '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes') }}"

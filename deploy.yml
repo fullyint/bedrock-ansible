@@ -1,33 +1,29 @@
 ---
-- import_playbook: variable-check.yml
-  vars:
-    playbook: deploy.yml
-
 - name: Test Connection
-  hosts: web:&{{ env }}
+  hosts: "{{ projects }},&web,&{{ env }}"
   gather_facts: false
   vars:
     dynamic_user: false
   roles:
     - { role: connection, tags: [connection, always] }
+    - { role: dynamic-hosts, tags: [dynamic-hosts, always] }
 
 - name: Deploy WP site
-  hosts: web:&{{ env }}
+  hosts: dynamic_hosts
+  gather_facts: false
   remote_user: "{{ web_user }}"
   pre_tasks:
-    - name: Ensure site is valid
-      connection: local
-      fail:
-        msg: "Site `{{ site | default('') }}` is not valid. Available sites to deploy: {{ wordpress_sites.keys() | join(', ') }}"
-      when: wordpress_sites[site | default('')] is not defined
     - name: Ensure repo is valid
       connection: local
       fail:
         msg: |
           Invalid Git repository.
-          Ensure that your site's `repo` variable is defined in `group_vars/{{ env }}/wordpress_sites.yml` and uses the SSH format (example: git@github.com:roots/bedrock.git)
+          Ensure that your site's `repo` variable is defined and uses the SSH format
+          (example: git@github.com:roots/bedrock.git).
+          The `repo` variable is usually defined in `group_vars/all/site_vars.yml`
+          or in `{{ project_path }}/vars/{{ env }}/site_vars.yml`.
           More info:
           > https://roots.io/trellis/docs/deploys/
-      when: project.repo is not defined or not project.repo | match(".*@.*:.*\.git")
+      when: repo is not defined or not repo | match(".*@.*:.*\.git")
   roles:
     - deploy

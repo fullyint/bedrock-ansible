@@ -1,19 +1,22 @@
-wordpress_env_defaults:
-  db_host: localhost
-  db_name: "{{ item.key | underscore }}_{{ env }}"
-  db_user: "{{ item.key | underscore }}"
-  db_user_host: localhost
-  disable_wp_cron: true
-  wp_env: "{{ env }}"
-  wp_home: "{{ ssl_enabled | ternary('https', 'http') }}://{{ site_hosts_canonical | first }}"
-  wp_siteurl: "{{ ssl_enabled | ternary('https', 'http') }}://{{ site_hosts_canonical | first }}/wp"
-  domain_current_site: "{{ site_hosts_canonical | first }}"
+site_hosts_canonical: "{{ site_hosts | default([{'canonical': site}]) | map(attribute='canonical') | list }}"
+site_hosts_redirects: "{{ site_hosts | default([]) | selectattr('redirects', 'defined') | sum(attribute='redirects', start=[]) | list }}"
 
-site_env: "{{ wordpress_env_defaults | combine(item.value.env | default({}), vault_wordpress_sites[item.key].env) }}"
-site_hosts_canonical: "{{ item.value.site_hosts | map(attribute='canonical') | list }}"
-site_hosts_redirects: "{{ item.value.site_hosts | selectattr('redirects', 'defined') | sum(attribute='redirects', start=[]) | list }}"
-site_hosts: "{{ site_hosts_canonical | union(site_hosts_redirects) }}"
-multisite_subdomains_wildcards: "{{ item.value.multisite.subdomains | default(false) | ternary( site_hosts_canonical | map('regex_replace', '^(www\\.)?(.*)$', '*.\\2') | list, [] ) }}"
-ssl_enabled: "{{ item.value.ssl is defined and item.value.ssl.enabled | default(false) }}"
-ssl_stapling_enabled: "{{ item.value.ssl is defined and item.value.ssl.stapling_enabled | default(true) }}"
-cron_enabled: "{{ site_env.disable_wp_cron and (not item.value.multisite.enabled | default(false) or (item.value.multisite.enabled | default(false) and item.value.multisite.cron | default(true))) }}"
+# This is a hack to avoid this weird error:
+# site_hosts_all: "{{ site_hosts_canonical | union(site_hosts_redirects) }}"
+# Unexpected templating type error occurred on ({{ site_hosts_canonical | union(site_hosts_redirects) }}): coercing to Unicode: need string or buffer, list found
+site_hosts_all: "[{% for host in site_hosts_canonical %}'{{ host }}',{% endfor %}{% for host in site_hosts_redirects %}'{{ host }}',{% endfor %}]"
+
+multisite_subdomains_wildcards: "{{ multisite.subdomains | ternary(site_hosts_canonical | map('regex_replace', '^(www\\.)?(.*)$', '*.\\2') | list, []) }}"
+cron_enabled: "{{ site_env.disable_wp_cron and (not multisite.enabled or (multisite.enabled and multisite.cron)) }}"
+
+users: "[{% for user in users_default | default([]) if user.name not in users_for_project | default([]) | map(attribute='name') | list %}{{ user }},{% endfor %}{% for user in users_for_project | default([]) %}{{ user }},{% endfor %}]"
+
+# Using that hack again to avoid weird error
+admin_user_keys: "[{% for key in lookup('union_for_host', admin_user_keys_to_union | default({})) %}'{{ key }}',{% endfor %}{% for key in admin_user_keys_for_project | default([]) %}'{{ key }}',{% endfor %}]"
+web_user_keys: "[{% for key in lookup('union_for_host', web_user_keys_to_union | default({})) %}'{{ key }}',{% endfor %}{% for key in web_user_keys_for_project | default([]) %}'{{ key }}',{% endfor %}]"
+
+logrotate_scripts: "[{% for script in logrotate_scripts_default | default([]) if script.name not in logrotate_scripts_for_project | default([]) | map(attribute='name') | list %}{{ script }},{% endfor %}{% for script in logrotate_scripts_for_project | default([]) %}{{ script }},{% endfor %}]"
+ferm_input_list: "{{ ferm_input_list_default | default([]) | union(ferm_input_list_for_project | default([])) }}"
+ip_whitelist: "{{ ip_whitelist_default | default([]) | union(ip_whitelist_for_project | default([])) }}"
+
+designated_child_host: inventory_hostname == groups[parent_host + '-children'] | default(['']) | intersect(ansible_play_batch) | first
