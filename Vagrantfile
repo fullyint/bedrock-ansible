@@ -50,7 +50,7 @@ Vagrant.configure('2') do |config|
     config.vm.define vm_name, primary: _machine['vagrant_primary'], autostart: vagrant_autostart do |machine|
       machine.vm.box = vconfig.fetch('vagrant_box')
       machine.vm.box_version = vconfig.fetch('vagrant_box_version')
-      machine.vm.hostname = vm_name
+      machine.vm.hostname = _machine['site_hosts'].first
       machine.vm.post_up_message = post_up_message
 
 
