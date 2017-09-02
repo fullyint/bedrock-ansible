@@ -1,13 +1,13 @@
 ---
 - name: Check whether user-specified release exists
   stat:
-    path: "{{ project_root }}/releases/{{ release }}"
+    path: "{{ site_root }}/releases/{{ release }}"
   register: specified
 
 - name: Get name of current symlinked release
-  shell: "basename $(readlink {{ project_current_path }})"
+  shell: "basename $(readlink {{ current_path }})"
   args:
-    chdir: "{{ project_root }}"
+    chdir: "{{ site_root }}"
   register: current_release
 
 - name: Fail if user-specified release doesn't exist or is already active
@@ -17,4 +17,4 @@
 
 - name: Create new_release_path variable
   set_fact:
-    new_release_path: "{{ project_root }}/releases/{{ release }}"
+    new_release_path: "{{ site_root }}/releases/{{ release }}"

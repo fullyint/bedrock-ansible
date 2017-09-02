@@ -9,7 +9,7 @@ from subprocess import CalledProcessError, check_output, STDOUT
 failed = False
 letsencrypt_cert_ids = {
     {% for host in ansible_play_batch if hostvars[host].parent_host | default('') == parent_host and hostvars[host].ssl.enabled and hostvars[host].ssl.provider == 'letsencrypt' %}
-    '{{ hostvars[host].site }}': '{{ hostvars[host].generate_cert_id.stdout }}',
+    '{{ hostvars[host].site_alias }}': '{{ hostvars[host].generate_cert_id.stdout }}',
     {% endfor %}
     }
 

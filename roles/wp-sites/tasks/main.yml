@@ -27,7 +27,7 @@
 
 - name: Create logs folder of sites
   file:
-    path: "{{ www_root }}/{{ site }}/logs"
+    path: "{{ site_root }}/logs"
     owner: "{{ web_user }}"
     group: "{{ web_group }}"
     mode: 0755
@@ -52,14 +52,14 @@
 - name: Create WordPress configuration for Nginx
   template:
     src: "{{ nginx_wordpress_site_conf }}"
-    dest: "{{ nginx_path }}/sites-available/{{ site }}.conf"
+    dest: "{{ nginx_path }}/sites-available/{{ site_alias }}.conf"
   notify: reload nginx
   tags: nginx-includes
 
 - name: Enable WordPress site
   file:
-    src: "{{ nginx_path }}/sites-available/{{ site }}.conf"
-    dest: "{{ nginx_path }}/sites-enabled/{{ site }}.conf"
+    src: "{{ nginx_path }}/sites-available/{{ site_alias }}.conf"
+    dest: "{{ nginx_path }}/sites-enabled/{{ site_alias }}.conf"
     owner: root
     group: root
     state: link
@@ -67,11 +67,11 @@
 
 - name: Setup WP system cron
   cron:
-    name: "{{ site }} WordPress cron"
+    name: "{{ site_alias }} WordPress cron"
     minute: "*/15"
     user: "{{ web_user }}"
-    job: "cd {{ www_root }}/{{ site }}/{{ current_path | default('current') }} && wp cron event run --due-now > /dev/null 2>&1"
-    cron_file: "wordpress-{{ site | replace('.', '_') }}"
+    job: "cd {{ site_root }}/{{ current_path | default('current') }} && wp cron event run --due-now > /dev/null 2>&1"
+    cron_file: "wordpress-{{ site_alias | replace('.', '_') }}"
     state: "{{ (cron_enabled and not multisite.enabled) | ternary('present', 'absent') }}"
 
 - name: Setup WP Multisite system cron
@@ -79,6 +79,6 @@
     name: "{{ site }} WordPress network cron"
     minute: "*/30"
     user: "{{ web_user }}"
-    job: "cd {{ www_root }}/{{ site }}/{{ current_path | default('current') }} && wp site list --field=url | xargs -n1 -I \\% wp --url=\\% cron event run --due-now > /dev/null 2>&1"
-    cron_file: "wordpress-multisite-{{ site | replace('.', '_') }}"
+    job: "cd {{ site_root }}/{{ current_path | default('current') }} && wp site list --field=url | xargs -n1 -I \\% wp --url=\\% cron event run --due-now > /dev/null 2>&1"
+    cron_file: "wordpress-multisite-{{ site_alias | replace('.', '_') }}"
     state: "{{ (cron_enabled and multisite.enabled) | ternary('present', 'absent') }}"

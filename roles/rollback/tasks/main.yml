@@ -17,6 +17,6 @@
 
 - name: Link 'current' directory to target release
   file:
-    path: "{{ project_root }}/{{ project_current_path }}"
+    path: "{{ site_root }}/{{ current_path }}"
     src: "{{ new_release_path }}"
     state: link

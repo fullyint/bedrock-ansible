@@ -1,28 +1,28 @@
 ---
 - name: Generate private keys
-  shell: openssl genrsa 4096 > {{ letsencrypt_keys_dir }}/{{ site }}.key
+  shell: openssl genrsa 4096 > {{ letsencrypt_keys_dir }}/{{ site_alias }}.key
   args:
-    creates: "{{ letsencrypt_keys_dir }}/{{ site }}.key"
+    creates: "{{ letsencrypt_keys_dir }}/{{ site_alias }}.key"
 
 - name: Ensure correct permissions on private keys
   file:
-    path: "{{ letsencrypt_keys_dir }}/{{ site }}.key"
+    path: "{{ letsencrypt_keys_dir }}/{{ site_alias }}.key"
     mode: 0600
 
 - name: Generate Lets Encrypt certificate IDs
   shell: |
     echo "{{ [site_hosts_all | join(' '), letsencrypt_ca, acme_tiny_commit, letsencrypt_intermediate_cert_sha256sum] | join('\n') }}" |
-    cat {{ letsencrypt_account_key }} {{ letsencrypt_keys_dir }}/{{ site }}.key - |
+    cat {{ letsencrypt_account_key }} {{ letsencrypt_keys_dir }}/{{ site_alias }}.key - |
     md5sum | cut -c -7
   register: generate_cert_id
   changed_when: false
   tags: [wp, wp-sites, wordpress, wordpress-setup, nginx-includes]
 
 - name: Generate CSRs
-  shell: "openssl req -new -sha256 -key '{{ letsencrypt_keys_dir }}/{{ site }}.key' -subj '/' -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf '[SAN]\nsubjectAltName=DNS:{{ site_hosts_all | join(',DNS:') }}')) > {{ acme_tiny_data_directory }}/csrs/{{ site }}-{{ generate_cert_id.stdout }}.csr"
+  shell: "openssl req -new -sha256 -key '{{ letsencrypt_keys_dir }}/{{ site_alias }}.key' -subj '/' -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf '[SAN]\nsubjectAltName=DNS:{{ site_hosts_all | join(',DNS:') }}')) > {{ acme_tiny_data_directory }}/csrs/{{ site_alias }}-{{ generate_cert_id.stdout }}.csr"
   args:
     executable: /bin/bash
-    creates: "{{ acme_tiny_data_directory }}/csrs/{{ site }}-{{ generate_cert_id.stdout }}.csr"
+    creates: "{{ acme_tiny_data_directory }}/csrs/{{ site_alias }}-{{ generate_cert_id.stdout }}.csr"
 
 - name: Generate certificate renewal script (only once per parent host)
   template:

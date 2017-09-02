@@ -8,7 +8,7 @@ vault_users:
     salt: "generateme"
 
 # Variables to accompany `group_vars/production/wordpress_sites.yml`
-# Note: the site name (`example.com`) must match up with the site name in the above file.
+# Note: the site name (`example`) must match up with the site name in the above file.
 vault_site_vars:
   site1:
     vault_db_password: example_dbpassword

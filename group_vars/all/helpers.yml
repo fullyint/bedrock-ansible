@@ -1,4 +1,4 @@
-site_hosts_canonical: "{{ site_hosts | default([{'canonical': site}]) | map(attribute='canonical') | list }}"
+site_hosts_canonical: "{{ site_hosts | default([{'canonical': 'unavailable'}]) | map(attribute='canonical') | list }}"
 site_hosts_redirects: "{{ site_hosts | default([]) | selectattr('redirects', 'defined') | sum(attribute='redirects', start=[]) | list }}"
 
 # This is a hack to avoid this weird error:

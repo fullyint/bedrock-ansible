@@ -7,8 +7,8 @@
 
 - name: Finalize the deploy
   deploy_helper:
-    current_path: "{{ project_current_path }}"
-    path: "{{ project_root }}"
+    current_path: "{{ current_path }}"
+    path: "{{ site_root }}"
     release: "{{ deploy_helper.new_release }}"
     state: finalize
     keep_releases: "{{ project.deploy_keep_releases | default(deploy_keep_releases | default(omit)) }}"

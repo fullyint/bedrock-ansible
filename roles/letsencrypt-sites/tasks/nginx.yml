@@ -1,22 +1,22 @@
 ---
 - name: Get list of hosts in current Nginx conf
   shell: |
-    [ ! -f {{ nginx_path }}/sites-enabled/{{ site }}.conf ] ||
-    sed -n -e "/listen 80/,/server_name/{s/server_name \(.*\);/\1/p}" {{ nginx_path }}/sites-enabled/{{ site }}.conf
+    [ ! -f {{ nginx_path }}/sites-enabled/{{ site_alias }}.conf ] ||
+    sed -n -e "/listen 80/,/server_name/{s/server_name \(.*\);/\1/p}" {{ nginx_path }}/sites-enabled/{{ site_alias }}.conf
   register: current_hosts
   changed_when: false
 
 - name: Create needed Nginx confs for challenges
   template:
     src: nginx-challenge-site.conf.j2
-    dest: "{{ nginx_path }}/sites-available/letsencrypt-{{ site }}.conf"
+    dest: "{{ nginx_path }}/sites-available/letsencrypt-{{ site_alias }}.conf"
   register: challenge_site_confs
   when: missing_hosts | count
 
 - name: Enable Nginx sites
   file:
-    src: "{{ nginx_path }}/sites-available/letsencrypt-{{ site }}.conf"
-    dest: "{{ nginx_path }}/sites-enabled/letsencrypt-{{ site }}.conf"
+    src: "{{ nginx_path }}/sites-available/letsencrypt-{{ site_alias }}.conf"
+    dest: "{{ nginx_path }}/sites-enabled/letsencrypt-{{ site_alias }}.conf"
     state: link
   register: challenge_sites_enabled
   when: missing_hosts | count

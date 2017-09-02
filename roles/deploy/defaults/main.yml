@@ -1,6 +1,6 @@
 # The source_path is used to fetch the tags from git, or synchronise via rsync. This way
 # you do not have to download/sync the entire project on every deploy
-project_source_path: "{{ project_root }}/shared/source"
+project_source_path: "{{ site_root }}/shared/source"
 
 # There are certain folders you'll want to copy from release to release to speed up deploys.
 # Examples: Composer's `vendor` folder, npm's `node_modules`.
@@ -35,16 +35,11 @@ project_shared_children:
 project_environment:
   WP_ENV: "{{ env }}"
 
-# The project_current_path is the symlink used for the latest or active deployment
-# - default is 'current'
-project_current_path: "{{ current_path | default('current') }}"
-
 # Whether to run `wp core update-db` at end of each deploy
 update_db_on_deploy: true
 
 # Helpers
-project_root: "{{ www_root }}/{{ site }}"
-project_local_path: "{{ (lookup('env', 'USER') == 'vagrant') | ternary(project_root + '/' + project_current_path, local_path) }}"
+project_local_path: "{{ (lookup('env', 'USER') == 'vagrant') | ternary(site_root + '/' + current_path, local_path) }}"
 
 
 # Deploy hooks

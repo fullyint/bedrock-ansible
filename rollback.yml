@@ -10,10 +10,5 @@
 - name: Rollback a Deploy
   hosts: "{{ projects }},&web,&{{ env }}"
   remote_user: "{{ web_user }}"
-
-  vars:
-    project_root: "{{ www_root }}/{{ site }}"
-    project_current_path: "{{ wordpress_sites[site].current_path | default('current') }}"
-
   roles:
     - rollback

@@ -7,8 +7,8 @@
 
 - name: Initialize
   deploy_helper:
-    current_path: "{{ project_current_path }}"
-    path: "{{ project_root }}"
+    current_path: "{{ current_path }}"
+    path: "{{ site_root }}"
     state: present
 
 - include_tasks: "{{ include_path }}"

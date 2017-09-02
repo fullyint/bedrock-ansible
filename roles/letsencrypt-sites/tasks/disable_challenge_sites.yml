@@ -1,6 +1,6 @@
 ---
 - name: disable temporary challenge sites
   file:
-    path: "{{ nginx_path }}/sites-enabled/letsencrypt-{{ site }}.conf"
+    path: "{{ nginx_path }}/sites-enabled/letsencrypt-{{ site_alias }}.conf"
     state: absent
   notify: reload nginx

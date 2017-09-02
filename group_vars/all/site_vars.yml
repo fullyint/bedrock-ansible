@@ -1,5 +1,6 @@
 site_vars_global:
   - all:
+      site_alias: "{{ site }}"
       site_hosts:
         - canonical: "{{ site }}.com"
           redirects:
@@ -24,8 +25,8 @@ site_vars_global:
         hsts_max_age: 0  # change to 31536000 for a project or site when you're ready to stick with always SSL
         hsts_include_subdomains: false # consider whether you could set this to true for each project or site
         hsts_preload: false # change to true for a project or site when you're absolutely ready to stick with always SSL
-        cert: ~/ssl/{{ site }}.crt
-        key: ~/ssl/{{ site }}.key
+        cert: ~/ssl/{{ site_alias }}.crt
+        key: ~/ssl/{{ site_alias }}.key
         stapling: true
         # client_cert_url: https://support.cloudflare.com/hc/en-us/article_attachments/201243967/origin-pull-ca.pem
       h5bp: # each feature enabled? true or false
@@ -48,8 +49,8 @@ site_vars_global:
         wp_siteurl: "{{ (ssl | default({})).enabled | default(false) | ternary('https', 'http') }}://{{ site_hosts_canonical | first }}/wp"
         wp_env: "{{ env | default('development') }}"
         domain_current_site: "{{ site_hosts_canonical | first }}"
-        db_name: "{{ site | underscore }}_{{ env | default('development') }}"
-        db_user: "{{ site | underscore }}"
+        db_name: "{{ site_alias | underscore }}_{{ env | default('development') }}"
+        db_user: "{{ site_alias | underscore }}"
         db_password: "{{ vault_db_password }}"
         db_host: localhost
         db_user_host: localhost

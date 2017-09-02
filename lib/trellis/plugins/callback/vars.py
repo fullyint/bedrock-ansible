@@ -182,11 +182,8 @@ class CallbackModule(CallbackBase):
         if dynamic_hosts:
             hostvars = combine_vars(hostvars, vault_site_vars_merged[current_site])
         else:
-            for key in list(set(chain.from_iterable([item.keys() for item in vault_site_vars_merged.values()]))):
-                hostvars[key] = hostvars.get(key, 'unavailable')
-                host.vars[key] = hostvars.get(key, 'unavailable')
-            hostvars['site'] = hostvars.get('site', 'unavailable')
-            host.vars['site'] = hostvars.get('site', 'unavailable')
+            for key in ['site', 'site_alias'] + list(set(chain.from_iterable([item.keys() for item in vault_site_vars_merged.values()]))):
+                host.vars[key] = hostvars[key] = hostvars.get(key, 'unavailable')
 
         # load site_vars_merged into host.vars
         site_vars_merged = {}

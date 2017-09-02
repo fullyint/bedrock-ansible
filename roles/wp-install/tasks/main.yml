@@ -5,14 +5,14 @@
 - name: Create .env file
   template:
     src: "env.j2"
-    dest: "/tmp/{{ site }}.env"
+    dest: "/tmp/{{ site_alias }}.env"
     owner: "{{ web_user }}"
     group: "{{ web_group }}"
 
 - name: Copy .env file into web root
-  command: rsync -ac --info=NAME /tmp/{{ site }}.env {{ www_root }}/{{ site }}/{{ current_path | default('current') }}/.env
+  command: rsync -ac --info=NAME /tmp/{{ site_alias }}.env {{ site_root }}/{{ current_path | default('current') }}/.env
   register: env_file
-  changed_when: env_file.stdout == site + '.env'
+  changed_when: env_file.stdout == site_alias + '.env'
 
 - name: Add known_hosts (only once per parent host)
   known_hosts:
@@ -30,7 +30,7 @@
   composer:
     command: config
     arguments: --auth http-basic.repo.packagist.com token {{ packagist_token }}
-    working_dir: "{{ www_root }}/{{ site }}/{{ current_path | default('current') }}/"
+    working_dir: "{{ site_root }}/{{ current_path | default('current') }}/"
   no_log: true
   become: no
   when: packagist_token is defined
@@ -39,7 +39,7 @@
   composer:
     no_dev: no
     optimize_autoloader: no
-    working_dir: "{{ www_root }}/{{ site }}/{{ current_path | default('current') }}/"
+    working_dir: "{{ site_root }}/{{ current_path | default('current') }}/"
   become: no
 
 - name: Install WP
@@ -55,20 +55,19 @@
            --admin_password="{{ wp_admin_password }}"
            --admin_email="{{ wp_admin_email }}"
   args:
-    chdir: "{{ www_root }}/{{ site }}/{{ current_path | default('current') }}/"
+    chdir: "{{ site_root }}/{{ current_path | default('current') }}/"
   register: wp_install
-  # with_dict: "{{ wordpress_sites }}"
   when: site_install | default(true)
   changed_when: "'WordPress is already installed.' not in wp_install.stdout and 'The network already exists.' not in wp_install.stdout"
 
 - name: Setup Permalink Structure
   command: wp rewrite structure {{ initial_permalink_structure | default("/%postname%/") }} --allow-root
   args:
-    chdir: "{{ www_root }}/{{ site }}/{{ current_path | default('current') }}/"
+    chdir: "{{ site_root }}/{{ current_path | default('current') }}/"
   when: wp_install | changed
 
 - name: Update WP Multisite Home URL
   command: wp option update home {{ site_env.wp_home }} --allow-root
   args:
-    chdir: "{{ www_root }}/{{ site }}/{{ current_path | default('current') }}/"
+    chdir: "{{ site_root }}/{{ current_path | default('current') }}/"
   when: site_install | default(true) and multisite.enabled | default(false)

@@ -13,10 +13,10 @@ commonName = {{ site_hosts_canonical | first }}\n
 subjectAltName = {{ site_hosts_all | union(multisite_subdomains_wildcards) | map('regex_replace', '(.*)', 'DNS:\\1') | join(',') }}\n
 EOF\n
     ) \
-    -keyout {{ site | quote }}.key -out {{ site | quote }}.cert"
+    -keyout {{ site_alias | quote }}.key -out {{ site_alias | quote }}.cert"
   args:
     executable: "/bin/bash"
     chdir: "{{ nginx_ssl_path }}"
-    creates: "{{ site }}.*"
+    creates: "{{ site_alias }}.*"
   when: ssl.enabled and ssl.provider == 'self-signed'
   notify: reload nginx

@@ -157,7 +157,17 @@ module Trellis
       @machines ||= begin
         hosts_data = YAML.load_file(File.join(ANSIBLE_PATH, 'hosts/hosts.yml'))
         projects_with_dev = hosts_data['projects'].select { |group,data| data.fetch('web', {}).include?('development') }
-        groups = hosts_data.fetch('groups', {}).select { |group,data| data.fetch('web', {}).include?('development') }.merge(projects_with_dev)
+        _groups = hosts_data.fetch('groups', {}).select { |group,data| data.fetch('web', {}).include?('development') }.merge(projects_with_dev)
+
+        # sort groups (machines) according to machine order specified on CLI, if any
+        # vagrant boots VMs in order specified on CLI
+        # `machines` and `machines_selected` must have the same order for correct Ansible parallel provisioning
+        # provisioning is conditional on `vm_name == machines_selected.last`
+        groups = {}
+        machines_selected(candidates: _groups).each do |name|
+          groups[name] = _groups.delete(name)
+        end
+        groups.merge!(_groups)
 
         # prepare vars that will be used throughout loop below
         site_vars_global = YAML.load_file(File.join(ANSIBLE_PATH, 'group_vars/all/site_vars.yml'))['site_vars_global']
@@ -224,16 +234,16 @@ module Trellis
     # limit machines to those specified in vagrant command, if any, or to machines designated to autostart
     # Note: "If Vagrant sees a machine name within forward slashes, it assumes you are using a regular expression."
     #       https://www.vagrantup.com/docs/multi-machine/#controlling-multiple-machines
-    def machines_selected
+    def machines_selected(candidates: @machines)
       @machines_selected ||= begin
-        selected = machines.keys
+        selected = candidates.keys
 
         if ['up', 'provision', 'hostmanager'].include?(ARGV[0]) or ARGV.include?('--provision')
-          machine_names = ARGV[1..-1].grep(/^(?!.*--)/).map { |pattern| machines.keys.grep(pattern.match(/\/.+\//) ? pattern.to_regexp : pattern) }
+          machine_names = ARGV[1..-1].grep(/^(?!.*--)/).map { |pattern| candidates.keys.grep(pattern.match(/\/.+\//) ? pattern.to_regexp : pattern) }
           if !machine_names.flatten.empty?
-            selected = machines.select { |name,data| machine_names.flatten.include?(name) }.keys
-          elsif ARGV[0] == 'up' and machines.keys.size > 1
-            selected = machines.select { |name,data| data['vagrant_autostart'] }.keys
+            selected = machine_names.flatten & candidates.keys
+          elsif ARGV[0] == 'up' and candidates.keys.size > 1
+            selected = candidates.select { |name,data| data['vagrant_autostart'] }.keys
           end
         end
 

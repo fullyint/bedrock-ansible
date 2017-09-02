@@ -10,12 +10,12 @@ server {
   {% endblock %}
 
   {% block logs -%}
-  access_log   {{ www_root }}/{{ site }}/logs/access.log main;
-  error_log    {{ www_root }}/{{ site }}/logs/error.log;
+  access_log   {{ site_root }}/logs/access.log main;
+  error_log    {{ site_root }}/logs/error.log;
   {% endblock %}
 
   {% block server_basic -%}
-  root  {{ www_root }}/{{ site }}/{{ current_path | default('current') }}/web;
+  root  {{ site_root }}/{{ current_path | default('current') }}/web;
   index index.php index.htm index.html;
   add_header Fastcgi-Cache $upstream_cache_status;
 
@@ -90,13 +90,13 @@ server {
   ssl_certificate_key     {{ nginx_path }}/ssl/{{ ssl.key | basename }};
 
   {% elif ssl.provider | default('manual') == 'letsencrypt' -%}
-  ssl_certificate         {{ nginx_path }}/ssl/letsencrypt/{{ site }}-{{ generate_cert_id.stdout }}-bundled.cert;
-  ssl_certificate_key     {{ nginx_path }}/ssl/letsencrypt/{{ site }}.key;
+  ssl_certificate         {{ nginx_path }}/ssl/letsencrypt/{{ site_alias }}-{{ generate_cert_id.stdout }}-bundled.cert;
+  ssl_certificate_key     {{ nginx_path }}/ssl/letsencrypt/{{ site_alias }}.key;
 
   {% elif ssl.provider | default('manual') == 'self-signed' -%}
-  ssl_certificate         {{ nginx_path }}/ssl/{{ site }}.cert;
-  ssl_trusted_certificate {{ nginx_path }}/ssl/{{ site }}.cert;
-  ssl_certificate_key     {{ nginx_path }}/ssl/{{ site }}.key;
+  ssl_certificate         {{ nginx_path }}/ssl/{{ site_alias }}.cert;
+  ssl_trusted_certificate {{ nginx_path }}/ssl/{{ site_alias }}.cert;
+  ssl_certificate_key     {{ nginx_path }}/ssl/{{ site_alias }}.key;
 
   {% endif -%}
   {% endif -%}

@@ -8,7 +8,7 @@ playbook_confirmations:
   sites: true           # true, false
   interactive: true     # true, false, env list (e.g., ['production', 'staging'] ), forced false when running via Vagrant
 
-project_path: "projects/{{ project | default('') }}"  # default path to projects, relative to Trellis root
+project_path: "projects/{{ project | default('') }}"  # default local path to projects, relative to Trellis root
 composer_keep_updated: true
 composer_global_packages:
  - { name: hirak/prestissimo }
@@ -19,6 +19,7 @@ apt_dev_package_state: latest
 ntp_timezone: Etc/UTC
 ntp_manage_config: true
 www_root: /srv/www
+site_root: "{{ www_root }}/{{ site_alias }}"
 ip_whitelist_default:
   - "{{ (env == 'development') | ternary(ansible_default_ipv4.gateway, ipify_public_ip | default('')) }}"
 
