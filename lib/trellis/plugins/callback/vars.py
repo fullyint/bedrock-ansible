@@ -140,8 +140,9 @@ class CallbackModule(CallbackBase):
         lookup = Templar(variables=hostvars, loader=play._loader)._lookup
         host = hostvars['inventory_hostname']
         vars_by_context = {}
+        contexts = ['_default', '_global', '_for_project'] if key.startswith('site_vars') else ['_global', '_for_project']
 
-        for var_context in ['_global', '_for_project']:
+        for var_context in contexts:
             if key.startswith('site_vars'):
                 _vars = self.combine_for_host(host, hostvars.get(key + var_context, {}), lookup)
             else:
@@ -157,7 +158,7 @@ class CallbackModule(CallbackBase):
                 vars_for_site = self.combine_for_host(host, vars_for_site, lookup)
 
             vars_for_site = self.get_raw_vars(keys, patterns, key, vars_for_site)
-            dicts_to_combine = [vars_by_context['_global'], vars_by_context['_for_project'], vars_for_site]
+            dicts_to_combine = [vars_by_context[context] for context in contexts] + [vars_for_site]
             vars_merged[site] = combine(*dicts_to_combine, recursive=True)
 
         return vars_merged

@@ -170,6 +170,7 @@ module Trellis
         groups.merge!(_groups)
 
         # prepare vars that will be used throughout loop below
+        site_vars_default = YAML.load_file(File.join(ANSIBLE_PATH, 'group_vars/all/site_vars_default.yml'))['site_vars_default']
         site_vars_global = YAML.load_file(File.join(ANSIBLE_PATH, 'group_vars/all/site_vars.yml'))['site_vars_global']
         project_path_var = YAML.load_file(File.join(ANSIBLE_PATH, 'group_vars/all/main.yml'))['project_path']
         _site_vars = {}
@@ -199,8 +200,9 @@ module Trellis
             _site_vars[project] ||= YAML.load_file(File.join(ANSIBLE_PATH, project_path, 'vars/all/site_vars.yml'))
             groups_to_match[project] ||= get_parents(project, hosts_data) + [project]
 
-            # process site_vars_global and site_vars_for_project
-            site_vars = combine_for_groups(groups_to_match[project], site_vars_global)
+            # process site_vars_default, site_vars_global and site_vars_for_project
+            site_vars = combine_for_groups(groups_to_match[project], site_vars_default)
+            site_vars.deep_merge!(combine_for_groups(groups_to_match[project], site_vars_global))
             site_vars.deep_merge!(combine_for_groups(groups_to_match[project], _site_vars[project].fetch('site_vars_for_project', {})))
 
             # process site_vars
