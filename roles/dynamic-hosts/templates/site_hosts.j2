@@ -1,17 +1,19 @@
-Required format for `site_hosts` ({{ project_path }}/vars/{{ env }}/site_vars.yml):
+Required format for `site_hosts` ({{ project_path }}/vars/all/site_vars.yml):
 
-example.com:
-  site_hosts:
-    - canonical: example.com
+site1:
+  - all:
+      site_hosts:
+        - canonical: site1.com
 
 The above is the minimum required. Multiple hosts and redirects are possible:
 
-example.com:
-  site_hosts:
-    - canonical: example.com
-      redirects:
-        - www.example.com
-        - site.com
-    - canonical: example.co.uk
-      redirects:
-        - www.example.co.uk
+site1:
+  - all:
+      site_hosts:
+        - canonical: site1.com
+          redirects:
+            - www.site1.com
+            - site.com
+        - canonical: site1.co.uk
+          redirects:
+            - www.site1.co.uk

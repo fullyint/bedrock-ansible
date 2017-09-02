@@ -49,7 +49,7 @@ projects: all
 # (e.g., for creating sites' web roots, creating database, deploying, etc.).
 #
 # Alternatively, you may create an env var:
-#   $ export TRELLIS_SITES="example.com,project2.com"
+#   $ export TRELLIS_SITES="site1,site2"
 #
 # You may define `sites` as a dictionary.
 #   - Use project names as keys and related sites as list values beneath each project key.
@@ -57,11 +57,11 @@ projects: all
 #     assuming the project will be included according to `projects` above.
 # sites:
 #   example:
-#     - example2.com
-#     - example.com
+#     - site1
+#     - site2
 #   project2:
-#     - project.com
-#     - project2.com
+#     - site3
+#     - site4
 sites: {}
 
 # You may define `sites` as a list.
@@ -72,6 +72,6 @@ sites: {}
 #     your intended `projects` above. Consider using the dictionary format for `sites`
 #     instead, which allows specificity of sites per project.
 # sites:
-#   - example.com
-#   - othersite.com
-#   - another.org
+#   - site1
+#   - site3
+#   - site5
