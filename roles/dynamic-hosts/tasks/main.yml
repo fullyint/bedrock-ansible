@@ -18,7 +18,7 @@
   when: site_vars_merged.keys() | difference(vault_site_vars_merged.keys()) |
         intersect(_dynamic_hosts | selectattr('project', 'equalto', project) |
         map(attribute='site') | list) | count
-  tags: [wordpress]
+  tags: [wp]
 
 - name: Validate format of site_hosts
   fail:
@@ -26,7 +26,7 @@
   with_dict: "{{ site_vars_merged }}"
   any_errors_fatal: true
   when: item.value.site_hosts | rejectattr('canonical', 'defined') | list | count
-  tags: [letsencrypt, wordpress]
+  tags: [letsencrypt, wp]
 
 - block:
   - name: Display targeted environment, projects, and sites

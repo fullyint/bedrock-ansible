@@ -27,4 +27,4 @@
   notify: reload nginx
 
 - import_tasks: nginx-includes.yml
-  tags: [nginx-includes, wordpress-setup-nginx]
+  tags: [nginx-includes, wp-general-nginx]

@@ -1,6 +1,6 @@
 ---
 - import_tasks: directories.yml
-  tags: wordpress-install-directories
+  tags: wp-install-directories
 
 - name: Create .env file
   template:

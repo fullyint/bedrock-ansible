@@ -16,7 +16,7 @@
     md5sum | cut -c -7
   register: generate_cert_id
   changed_when: false
-  tags: [wp, wp-sites, wordpress, wordpress-setup, nginx-includes]
+  tags: [wp, wp-sites, nginx-includes]
 
 - name: Generate CSRs
   shell: "openssl req -new -sha256 -key '{{ letsencrypt_keys_dir }}/{{ site_alias }}.key' -subj '/' -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf '[SAN]\nsubjectAltName=DNS:{{ site_hosts_all | join(',DNS:') }}')) > {{ acme_tiny_data_directory }}/csrs/{{ site_alias }}-{{ generate_cert_id.stdout }}.csr"

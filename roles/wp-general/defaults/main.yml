@@ -5,7 +5,7 @@ memcached_sessions: false
 
 # Nginx includes
 nginx_includes_templates_path: nginx-includes
-nginx_includes_deprecated: roles/wordpress-setup/templates/includes.d
+nginx_includes_deprecated: roles/wp-general/templates/includes.d
 nginx_includes_pattern: "^({{ nginx_includes_templates_path | regex_escape }}|{{ nginx_includes_deprecated | regex_escape }})/(.*)\\.j2$"
 nginx_includes_d_cleanup: true
 
