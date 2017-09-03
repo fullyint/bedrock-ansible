@@ -49,3 +49,5 @@ dynamic_hosts_for_groups: |
       {% endfor %}
     {% endfor %}
   ]
+
+localhost_is_vagrant: false

@@ -2,4 +2,4 @@ acme_tiny_challenges_directory: "{{ www_root }}/letsencrypt"
 ferm_enabled: false
 mysql_root_password: "{{ vault_mysql_root_password }}" # Define this variable in projects/example/vars/development/vault.yml
 web_user: vagrant
-ansible_connection: "{{ (localhost_is_vagrant | default(false)) | ternary('local', 'ssh') }}"
+ansible_connection: "{{ localhost_is_vagrant | ternary('local', 'ssh') }}"
