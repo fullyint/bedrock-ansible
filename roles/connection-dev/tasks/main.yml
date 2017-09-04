@@ -39,6 +39,7 @@
       ansible_ssh_extra_args: "{{ vagrant_ssh_extra_args }}
         {{ '-i ' + vagrant_private_key_files[project] | join(' -i ') if project in vagrant_machines_selected else '' }}
         {{ ansible_ssh_extra_args | default('') }}"
+    when: project_in_selected_vms
 
   when: not localhost_is_vagrant
 
@@ -50,6 +51,7 @@
     - env == 'development'
     - project in vagrant_machines_selected or (localhost_is_vagrant and project == local_hostname)
     - inventory_hostname == groups[project] | default(['']) | intersect(ansible_play_batch) | first
+    - project_in_selected_vms
 
 - name: Ensure base project is in multi-project VM's groups
   fail:

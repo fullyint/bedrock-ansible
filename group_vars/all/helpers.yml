@@ -20,3 +20,5 @@ ferm_input_list: "{{ ferm_input_list_default | default([]) | union(ferm_input_li
 ip_whitelist: "{{ ip_whitelist_default | default([]) | union(ip_whitelist_for_project | default([])) }}"
 
 designated_child_host: inventory_hostname == groups[parent_host + '-children'] | default(['']) | intersect(ansible_play_batch) | first
+
+project_in_selected_vms: "vagrant_machines | default([]) == [] or group_names | intersect( vagrant_machines if vagrant_machines | type_debug == 'list' else vagrant_machines.split(',')) | count"

@@ -22,9 +22,11 @@
   fail:
     msg: "{{ lookup('template', 'site_vars.j2') }}"
   any_errors_fatal: true
-  when: site_vars_merged.keys() | difference(vault_site_vars_merged.keys()) |
-        intersect(_dynamic_hosts | selectattr('project', 'equalto', project) |
-        map(attribute='site') | list) | count
+  when:
+    - project_in_selected_vms
+    - site_vars_merged.keys() | difference(vault_site_vars_merged.keys()) |
+      intersect(_dynamic_hosts | selectattr('project', 'equalto', project) |
+      map(attribute='site') | list) | count
   tags: [wp]
 
 - name: Validate format of site_hosts
@@ -32,7 +34,9 @@
     msg: "{{ lookup('template', 'site_hosts.j2') }}"
   with_dict: "{{ site_vars_merged }}"
   any_errors_fatal: true
-  when: item.value.site_hosts | rejectattr('canonical', 'defined') | list | count
+  when:
+    - project_in_selected_vms
+    - item.value.site_hosts | rejectattr('canonical', 'defined') | list | count
   tags: [letsencrypt, wp]
 
 - block:
@@ -68,6 +72,7 @@
 - name: Add ansible_host to hostvars for use with dynamic hosts
   set_fact:
     ansible_host: "{{ ansible_host }}"
+  when: project_in_selected_vms
 
 - name: Create host-by-site dynamic hosts
   add_host:
