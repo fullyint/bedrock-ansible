@@ -6,9 +6,11 @@
     dynamic_user: false
   roles:
     - { role: connection, tags: [connection, always] }
+    - { role: dynamic-hosts, tags: [dynamic-hosts, always] }
 
 - name: Rollback a Deploy
-  hosts: "{{ projects }},&web,&{{ env }}"
+  hosts: dynamic_hosts
+  gather_facts: false
   remote_user: "{{ web_user }}"
   roles:
     - rollback
