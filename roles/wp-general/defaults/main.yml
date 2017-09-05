@@ -3,12 +3,6 @@ nginx_ssl_path: "{{ nginx_path }}/ssl"
 php_display_errors: 'Off'
 memcached_sessions: false
 
-# Nginx includes
-nginx_includes_templates_path: nginx-includes
-nginx_includes_deprecated: roles/wp-general/templates/includes.d
-nginx_includes_pattern: "^({{ nginx_includes_templates_path | regex_escape }}|{{ nginx_includes_deprecated | regex_escape }})/(.*)\\.j2$"
-nginx_includes_d_cleanup: true
-
 # h5bp helpers
 not_dev: "{{ env != 'development' }}"
 h5bp: "{{ item.value.h5bp | default({}) }}"
@@ -27,3 +21,15 @@ php_fpm_pm_start_servers: 1
 php_fpm_pm_min_spare_servers: 1
 php_fpm_pm_max_spare_servers: 3
 php_fpm_pm_max_requests: 500
+
+# Nginx includes per parent hosts
+# Do not define your own includes here.
+# Instead, redefine `nginx_includes_general` in a group_vars or project/vars file.
+nginx_includes_general: []
+# nginx_includes_general:
+#   - src: nginx-includes/global_include.conf.j2
+#     dest: global_include.conf    # destination path relative to /etc/nginx/includes.d
+#   - src: "{{ project_path }}/nginx-includes/project_include.conf.j2"
+#     dest: project_include.conf   # destination path relative to /etc/nginx/includes.d
+# Note: Nginx includes per site should use nginx_includes in roles/wp-general/defaults/main.yml
+#       where `site_vars` are available as top-level vars.

@@ -108,7 +108,9 @@ server {
   {% endblock -%}
 
   {% block includes_d -%}
-  include includes.d/{{ site }}/*.conf;
+  {% for include in nginx_includes_general + nginx_includes -%}
+  include includes.d/{{ include.dest }};
+  {% endfor %}
 
   {% endblock -%}
 

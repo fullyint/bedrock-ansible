@@ -26,5 +26,17 @@
     dest: "{{ nginx_path }}/acme-challenge-location.conf"
   notify: reload nginx
 
-- import_tasks: nginx-includes.yml
-  tags: [nginx-includes, wp-general-nginx]
+- name: Create parent directories for general Nginx includes
+  file:
+    path: "{{ nginx_path }}/includes.d/{{ item.dest | dirname }}"
+    state: directory
+  with_items: "{{ nginx_includes_general }}"
+  tags: nginx-includes
+
+- name: Template general Nginx includes to includes.d
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ nginx_path }}/includes.d/{{ item.dest }}"
+  with_items: "{{ nginx_includes_general }}"
+  notify: reload nginx
+  tags: nginx-includes
