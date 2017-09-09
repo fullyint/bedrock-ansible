@@ -11,9 +11,15 @@ ip_whitelist:
 gzip_assets_on_deploy: true
 # Relative to `web`
 static_asset_paths:
-  - wp
+  - wp/wp-content/plugins
+  - wp/wp-includes
   - app/plugins
   - app/themes
+
+# patterns to match for assets' relative paths
+# static_asset_pattern: (?!.*exclude_string)(include_string|other_include_string)
+static_asset_pattern: .*
+
 static_asset_extensions:
   - js
   - css

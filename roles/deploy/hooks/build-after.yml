@@ -22,18 +22,45 @@
     no_scripts: yes
     working_dir: "{{ deploy_helper.new_release_path }}"
 
-- name: Find static assets
-  find:
-    paths: "{{ project.static_asset_paths | default(static_asset_paths) | map('regex_replace', '(.*)', deploy_helper.new_release_path + '/web/\\1') | list }}"
-    patterns: "*.{{ project.static_asset_extensions | default(static_asset_extensions) | join(',*.') }}"
-    recurse: yes
+- block:
+  - name: Find static assets
+    find:
+      paths: "{{ project.static_asset_paths | default(static_asset_paths) | map('regex_replace', '(.*)', item.1 + '/web/\\1') | list }}"
+      patterns: "*.{{ project.static_asset_extensions | default(static_asset_extensions) | join(gz + ',*.') }}{{ gz }}"
+      recurse: yes
+      size: 256
+      get_checksum: yes
+    when: project.gzip_assets_on_deploy | default(gzip_assets_on_deploy)
+    register: static_assets_raw
+    with_indexed_items:
+      - "{{ deploy_helper.new_release_path }}"
+      - "{{ deploy_helper.current_path }}"
+      - "{{ deploy_helper.current_path }}"
+    vars:
+      gz: "{{ (item.0 == 2) | ternary('.gz', '') }}"
+
+  - name: set vars
+    set_fact:
+      files_to_copy: "{{ files_to_copy | select('search', static_asset_pattern) | list }}"
+      files_to_compress: "{{ new_checksums.keys() | difference(files_to_copy) | select('search', static_asset_pattern) | list }}"
+      available_gzips: "{{ available_gzips }}"
+    vars:
+      new_checksums: "{ {% for file in static_assets_raw.results.0.files %}'{{ file.path[(deploy_helper.new_release_path | length + 1):] }}': '{{ file.checksum }}', {% endfor %} }"
+      old_checksums: "{ {% for file in static_assets_raw.results.1.files %}'{{ file.path[(deploy_helper.current_path | length + 1):] }}': '{{ file.checksum }}', {% endfor %} }"
+      available_gzips: "[ {% for file in static_assets_raw.results.2.files %}'{{ file.path[(deploy_helper.current_path | length + 1):-3] }}', {% endfor %} ]"
+      files_to_copy: "[ {% for file,checksum in new_checksums.iteritems() if file in available_gzips and old_checksums[file] | default('') == checksum %}'{{ file }}', {% endfor %} ]"
+
+  - name: Copy unchanged static assets
+    copy:
+      src: "{{ deploy_helper.current_path }}/{{ item | quote }}.gz"
+      dest: "{{ deploy_helper.new_release_path }}/{{ item | quote }}.gz"
+      remote_src: yes
+    with_items: "{{ files_to_copy }}"
+
+  - name: Gzip changed static assets
+    shell: "gzip --best --keep --force {{ files_to_compress | map('quote') | join(' ') }}"
+    args:
+      chdir: "{{ deploy_helper.new_release_path }}"
+    when: files_to_compress | count
+
   when: project.gzip_assets_on_deploy | default(gzip_assets_on_deploy)
-  register: static_assets_raw
-
-- name: Set fact -- Static assets
-  set_fact:
-    static_assets: "{{ static_assets_raw.files | default([]) }}"
-
-- name: Gzip static assets
-  shell: "gzip --best --keep --force {{ static_assets | map(attribute='path') | map('quote') | join(' ') }}"
-  when: ( project.gzip_assets_on_deploy | default(gzip_assets_on_deploy) ) and ( static_assets | count )
