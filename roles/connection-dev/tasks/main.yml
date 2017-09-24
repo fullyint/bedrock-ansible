@@ -1,9 +1,8 @@
 ---
 # These lookups would otherwise run each of the multiple times they are used
-- name: Lookup local user, local hostname, and inventory hosts
+- name: Lookup local user and inventory hosts
   set_fact:
     localhost_is_vagrant: "{{ lookup('env', 'USER') == 'vagrant' }}"
-    local_hostname: "{{ lookup('pipe', 'hostname' ) }}"
     _projects: "{{ (lookup('file', 'hosts/hosts.yml') | from_yaml).projects.keys() }}"
     _groups: "{{ lookup('pipe', 'hosts/hosts.py --list') | from_json }}"
   run_once: true
@@ -49,7 +48,7 @@
   register: vagrant_base_hosts
   when:
     - env == 'development'
-    - project in vagrant_machines_selected or (localhost_is_vagrant and project == local_hostname)
+    - project in vagrant_machines_selected or (localhost_is_vagrant and project == vagrant_machine)
     - inventory_hostname == groups[project] | default(['']) | intersect(ansible_play_batch) | first
     - project_in_selected_vms
 

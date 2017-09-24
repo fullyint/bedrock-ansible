@@ -1,3 +1,4 @@
+vagrant_machine: ''
 vagrant_machines: "{{ _dynamic_hosts | map(attribute='project') | list | union(_multi_project_vms) | unique }}"
 
 vagrant_machines_selected: "{{ vagrant_machine_statuses | default([]) | selectattr('status', 'search', 'running') |
@@ -7,7 +8,7 @@ _multi_project_vms: "[ {% for group,data in _groups.iteritems() if (data.web | d
 
 multi_project_vms: |
   [
-    {% for group,data in _groups.iteritems() if (group in vagrant_machines_selected or group == local_hostname) and (data.web | default({})).development is defined %}
+    {% for group,data in _groups.iteritems() if (group in vagrant_machines_selected or group == vagrant_machine) and (data.web | default({})).development is defined %}
       {% set _base_project = (_projects | intersect(data.children | default([])) | sort + ['']) | first %}
       {% set base_project = (data.web.development | type_debug == 'list') | ternary(data.web.development[0].base_project | default(_base_project), _base_project) %}
       {% macro parents(grp) %}{% for k,v in _groups.iteritems() if grp in v.children | default([]) %},'{{ k }}'{{ parents(k) }}{% endfor %}{% endmacro %}

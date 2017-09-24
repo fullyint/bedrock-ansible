@@ -77,7 +77,7 @@
 - name: Create host-by-site dynamic hosts
   add_host:
     name: "{{ item.parent_host }}->{{ item.site }}"
-    groups: "{{ (item.groups + ['dynamic_hosts', item.parent_host + '-children', item.site]) |
+    groups: "{{ (item.groups + ['dynamic_hosts', item.parent_host + '-children']) |
             difference(['vagrant_base_hosts']) | join(',') }}"
     project: "{{ item.project }}"
     parent_project: "{{ item.parent_project }}"

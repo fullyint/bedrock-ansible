@@ -148,7 +148,8 @@ Vagrant.configure('2') do |config|
           ansible.extra_vars = {
             'vagrant_provisioner' => true,
             'vagrant_version' => Vagrant::VERSION,
-            'vagrant_machines' => machines_selected
+            'vagrant_machines' => machines_selected,
+            'vagrant_machine' => vm_name
           }
           config.ssh.forward_agent = false
           # ansible.verbose = 'vvv'

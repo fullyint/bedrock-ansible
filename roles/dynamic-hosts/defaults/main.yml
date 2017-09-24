@@ -2,7 +2,7 @@ _sites: "{{ (site != 'unavailable') | ternary(site, sites | default({})) }}"
 
 _dynamic_hosts: |
   [
-    {% for host in ansible_play_batch if env != 'development' or not localhost_is_vagrant or local_hostname in hostvars[host].group_names %}
+    {% for host in ansible_play_batch if env != 'development' or not localhost_is_vagrant or vagrant_machine in hostvars[host].group_names %}
       {% for site in (hostvars[host].site_vars | default({})).keys() if
         ((_sites | type_debug) == 'dict' and (hostvars[host].project not in _sites or site in _sites[hostvars[host].project])) or
         ((_sites | type_debug) == 'list' and site in _sites) or

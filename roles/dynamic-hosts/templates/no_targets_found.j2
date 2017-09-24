@@ -2,12 +2,12 @@ Error: No targets found for specified env + projects + sites combination.
 Perhaps the specified sites are not part of projects that fit the specified
 project pattern, or perhaps just not for the `{{ env }}` environment{{
 (env == 'development' and localhost_is_vagrant) | ternary(
-  ' or for the `' + local_hostname | default('') + '` Vagrant machine', ''
+  ' or for the `' + vagrant_machine + '` Vagrant machine', ''
 ) }}.
 
 {% if env == 'development' %}
 {% if localhost_is_vagrant %}
-Ansible running on `{{ local_hostname | default('') }}` Vagrant machine
+Ansible running on `{{ vagrant_machine }}` Vagrant machine
 (`projects` and `sites` are limited to those available on this machine)
 
 {% else %}
