@@ -1,11 +1,4 @@
 ---
-- name: Generate SSH key for vagrant user
-  user:
-    name: vagrant
-    generate_ssh_key: yes
-  when: localhost_is_vagrant
-  run_once: true
-
 # If defined in group_vars, this processing-intensive var would be evaluated every time consumed
 - name: Evaluate and set dynamic_hosts var to spare future processing
   set_fact:
