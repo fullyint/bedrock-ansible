@@ -130,6 +130,10 @@ Vagrant.configure('2') do |config|
 
       # PROVISIONING
       # ------------------------------------------
+      # https://github.com/hashicorp/vagrant/issues/7015#issuecomment-234783285
+      machine.vm.provision "shell", inline: "> /etc/profile.d/trellis.sh", run: "always"
+      machine.vm.provision "shell", inline: "echo 'export VAGRANT_MACHINE=#{vm_name}' >> /etc/profile.d/trellis.sh", run: "always"
+
       if provisioner == :ansible_local or vm_name == machines_selected.last
         machine.vm.provision provisioner do |ansible|
           if local_provisioning?
@@ -148,8 +152,7 @@ Vagrant.configure('2') do |config|
           ansible.extra_vars = {
             'vagrant_provisioner' => true,
             'vagrant_version' => Vagrant::VERSION,
-            'vagrant_machines' => machines_selected,
-            'vagrant_machine' => vm_name
+            'vagrant_machines' => machines_selected
           }
           config.ssh.forward_agent = false
           # ansible.verbose = 'vvv'

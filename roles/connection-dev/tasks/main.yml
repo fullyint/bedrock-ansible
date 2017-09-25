@@ -3,6 +3,7 @@
 - name: Lookup local user and inventory hosts
   set_fact:
     localhost_is_vagrant: "{{ lookup('env', 'USER') == 'vagrant' }}"
+    vagrant_machine: "{{ lookup('env', 'VAGRANT_MACHINE') }}"
     _projects: "{{ (lookup('file', 'hosts/hosts.yml') | from_yaml).projects.keys() }}"
     _groups: "{{ lookup('pipe', 'hosts/hosts.py --list') | from_json }}"
   run_once: true
