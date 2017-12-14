@@ -136,29 +136,28 @@ class CallbackModule(CallbackBase):
         patterns = [re.sub(r'\*', '(.)*', re.sub(r'\.', '\.', var)) for var in raw_vars if var.split('.')[0] in hostvars]
         keys = set(pattern.split('\.')[0] for pattern in patterns)
 
-        # retrieve values for vars to be merged
-        lookup = Templar(variables=hostvars, loader=play._loader)._lookup
-        host = hostvars['inventory_hostname']
-        vars_by_context = {}
-        contexts = ['_default', '_global', '_for_project'] if key.startswith('site_vars') else ['_global', '_for_project']
-
-        for var_context in contexts:
-            if key.startswith('site_vars'):
-                _vars = self.combine_for_host(host, hostvars.get(key + var_context, {}), lookup)
-            else:
-                _vars = hostvars.get(key + var_context, {})
-
-            vars_by_context[var_context] = self.get_raw_vars(keys, patterns, key + var_context, _vars)
-
-        # loop through sites and merge vars
+        # `site_vars_default` exists but `vault_site_vars_default` does not
+        contexts = ['_default', '_global', '_for_project', ''] if key.startswith('site_vars') else ['_global', '_for_project', '']
         vars_merged = {}
 
+        # loop through sites and merge vars
         for site,vars_for_site in hostvars.get(key, {}).iteritems():
-            if key.startswith('site_vars'):
-                vars_for_site = self.combine_for_host(host, vars_for_site, lookup)
+            # add site name to groups for this host so site_vars combine_for_host patterns can be based on site name
+            _hostvars = hostvars
+            _hostvars['groups'][site] = _hostvars['groups'].get(site, []) + [hostvars['inventory_hostname']]
 
-            vars_for_site = self.get_raw_vars(keys, patterns, key, vars_for_site)
-            dicts_to_combine = [vars_by_context[context] for context in contexts] + [vars_for_site]
+            lookup = Templar(variables=hostvars, loader=play._loader)._lookup
+            vars_by_context = {}
+
+            for var_context in contexts:
+                _vars = _hostvars.get(key + var_context, {}) if var_context != '' else vars_for_site
+                # vars with the `site_vars` key need to be combined for host
+                if key.startswith('site_vars'):
+                    _vars = self.combine_for_host(hostvars['inventory_hostname'], _vars, lookup)
+
+                vars_by_context[var_context] = self.get_raw_vars(keys, patterns, key + var_context, _vars)
+
+            dicts_to_combine = [vars_by_context[context] for context in contexts]
             vars_merged[site] = combine(*dicts_to_combine, recursive=True)
 
         return vars_merged
